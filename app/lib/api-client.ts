@@ -27,7 +27,7 @@ export async function apiFetch<T>(
   }
   
   // ヘッダーを構築（Content-Typeは最後に設定して確実にapplication/jsonにする）
-  const customHeaders = { ...(options.headers || {}) };
+  const customHeaders = { ...(options.headers || {}) } as Record<string, string>;
   // Content-Typeが既に設定されている場合は削除（後で確実にapplication/jsonを設定するため）
   if (!isFormData && customHeaders["Content-Type"]) {
     console.log("⚠️ Removing existing Content-Type:", customHeaders["Content-Type"]);
