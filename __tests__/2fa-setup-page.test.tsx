@@ -20,6 +20,10 @@ jest.mock("../app/lib/auth-client", () => ({
   clearAccessToken: jest.fn(),
 }));
 
+jest.mock("qrcode", () => ({
+  toCanvas: jest.fn(),
+}));
+
 // sessionStorageのモック
 const sessionStorageMock = (() => {
   let store: Record<string, string> = {};

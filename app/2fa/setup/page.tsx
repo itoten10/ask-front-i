@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
+import QRCode from "qrcode";
 
 import { apiFetch } from "../../lib/api-client";
 import { setAccessToken } from "../../lib/auth-client";
-
-// QRCodeSVGをクライアントサイドでのみレンダリング（SSRを無効化）
-const QRCodeSVG = dynamic(
-  () => import("qrcode.react").then((mod) => mod.QRCodeSVG),
-  { ssr: false }
-);
 
 type TwoFASetupResponse = {
   secret: string;
@@ -35,6 +29,7 @@ export default function TwoFASetupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [setupLoading, setSetupLoading] = useState(true);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const setup2FA = async () => {
@@ -70,6 +65,15 @@ export default function TwoFASetupPage() {
 
     setup2FA();
   }, [router]);
+
+  useEffect(() => {
+    if (qrData?.otpauth_url && canvasRef.current) {
+      QRCode.toCanvas(canvasRef.current, qrData.otpauth_url, {
+        width: 256,
+        margin: 2,
+      });
+    }
+  }, [qrData]);
 
   const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -157,7 +161,7 @@ export default function TwoFASetupPage() {
         <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
           <div className="flex flex-col items-center">
             {qrData.otpauth_url ? (
-              <QRCodeSVG value={qrData.otpauth_url} size={256} />
+              <canvas ref={canvasRef} />
             ) : (
               <div className="w-64 h-64 bg-gray-200 flex items-center justify-center">
                 <p className="text-gray-500">QRコードを読み込み中...</p>
