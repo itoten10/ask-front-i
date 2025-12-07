@@ -46,7 +46,7 @@ export async function apiFetch<T>(
   // デバッグ: ヘッダー情報をログ出力（詳細に）
   if (process.env.NODE_ENV === "development") {
     console.log("apiFetch - headers object:", headers);
-    console.log("apiFetch - Content-Type:", headers["Content-Type"]);
+    console.log("apiFetch - Content-Type:", (headers as Record<string, string>)["Content-Type"]);
     console.log("apiFetch - headers keys:", Object.keys(headers));
     // 各ヘッダーの値を確認
     Object.entries(headers).forEach(([key, value]) => {
@@ -64,7 +64,7 @@ export async function apiFetch<T>(
   
   // Content-Typeを確実に設定（restで上書きされないように）
   if (!isFormData && fetchOptions.body) {
-    (fetchOptions.headers as HeadersInit)["Content-Type"] = "application/json";
+    (fetchOptions.headers as Record<string, string>)["Content-Type"] = "application/json";
   }
   
   // デバッグ: 最終的なfetchオプションを確認
