@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { apiFetch, apiFetchBlob } from "../../lib/api-client";
-import { clearAccessToken } from "../../lib/auth-client";
-import { ensureAccessToken, fetchMe, MeUser } from "../../lib/session";
+import { apiFetch, apiFetchBlob } from "@/lib/api/client";
+import { clearAccessToken } from "@/lib/auth/client";
+import { ensureAccessToken, fetchMe, MeUser } from "@/lib/session";
 
 type UserListItem = {
   id: number;

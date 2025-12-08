@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { apiFetch } from "../lib/api-client";
-import { clearAccessToken } from "../lib/auth-client";
-import { fetchMe, MeUser } from "../lib/session";
+import { apiFetch } from "@/lib/api/client";
+import { clearAccessToken } from "@/lib/auth/client";
+import { fetchMe, MeUser } from "@/lib/session";
 
 const roleLabel: Record<MeUser["role"], string> = {
   student: "生徒",

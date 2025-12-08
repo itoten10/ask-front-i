@@ -4,8 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 
-import { apiFetch } from "../../lib/api-client";
-import { setAccessToken } from "../../lib/auth-client";
+import { apiFetch } from "@/lib/api/client";
+import { setAccessToken } from "@/lib/auth/client";
 
 type TwoFASetupResponse = {
   secret: string;

@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import { apiFetch } from "../../lib/api-client";
-import { setAccessToken } from "../../lib/auth-client";
+import { apiFetch } from "@/lib/api/client";
+import { setAccessToken } from "@/lib/auth/client";
 
 type TwoFAVerifyRequest = {
   code: string;
