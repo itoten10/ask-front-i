@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { clearAccessToken } from "../lib/auth-client";
-import { fetchMe, MeUser } from "../lib/session";
+import { clearAccessToken } from "@/lib/auth/client";
+import { fetchMe, MeUser } from "@/lib/session";
 
 export default function AdminHomePage() {
   const router = useRouter();

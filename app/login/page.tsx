@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn, signOut } from "next-auth/react";
 
-import { apiFetch } from "../lib/api-client";
-import { clearAccessToken, setAccessToken } from "../lib/auth-client";
+import { apiFetch } from "@/lib/api/client";
+import { clearAccessToken, setAccessToken } from "@/lib/auth/client";
 
 type LocalLoginResponse = {
   token: {

@@ -1,3 +1,4 @@
+// クライアント側のアクセストークン管理
 let inMemoryAccessToken: string | null = null;
 
 export const getAccessToken = () => inMemoryAccessToken;
