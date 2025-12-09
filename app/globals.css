@@ -1,26 +1,103 @@
 @import "tailwindcss";
 
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* 背景色：PDFのような薄い紫がかった白 */
+  --background: 260 20% 98%;
+  --foreground: 260 10% 10%;
+
+  /* カード：白 */
+  --card: 0 0% 100%;
+  --card-foreground: 260 10% 10%;
+
+  /* ポップオーバー */
+  --popover: 0 0% 100%;
+  --popover-foreground: 260 10% 10%;
+
+  /* メインカラー：PDFのヘッダーのような紫色 */
+  --primary: 262 60% 65%;
+  --primary-foreground: 210 40% 98%;
+
+  /* サブカラー */
+  --secondary: 260 20% 96%;
+  --secondary-foreground: 260 10% 10%;
+
+  /* 控えめな色 */
+  --muted: 260 20% 96%;
+  --muted-foreground: 260 5% 45%;
+
+  /* アクセント */
+  --accent: 260 30% 94%;
+  --accent-foreground: 260 10% 10%;
+
+  /* 削除などの赤色 */
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+
+  /* ボーダー線 */
+  --border: 260 20% 90%;
+  --input: 260 20% 90%;
+  --ring: 262 60% 65%;
+
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 260 10% 10%;
+  --foreground: 260 20% 98%;
+  --card: 260 10% 10%;
+  --card-foreground: 260 20% 98%;
+  --popover: 260 10% 10%;
+  --popover-foreground: 260 20% 98%;
+  --primary: 262 60% 65%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 260 10% 15%;
+  --secondary-foreground: 260 20% 98%;
+  --muted: 260 10% 15%;
+  --muted-foreground: 260 5% 65%;
+  --accent: 260 10% 15%;
+  --accent-foreground: 260 20% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 260 20% 98%;
+  --border: 260 10% 15%;
+  --input: 260 10% 15%;
+  --ring: 262 60% 65%;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-background text-foreground;
 }
