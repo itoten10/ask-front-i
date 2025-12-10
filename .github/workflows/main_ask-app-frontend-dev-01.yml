@@ -25,6 +25,8 @@ jobs:
 
       # ▼▼▼【変更点1】ビルドコマンドにコピー処理を追加 ▼▼▼
       - name: npm install and build
+        env:
+          NEXT_PUBLIC_API_ENDPOINT: https://ask-app-backend-dev-02-hzbkbnhvbcd2c9ak.eastus-01.azurewebsites.net
         run: |
           npm install
           # キャッシュをクリアしてクリーンビルド
