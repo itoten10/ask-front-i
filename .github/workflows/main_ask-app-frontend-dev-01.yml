@@ -31,8 +31,6 @@ jobs:
           # スタンドアローンモードに必要な静的ファイルを正しい場所にコピーします
           cp -r public .next/standalone/public || true
           cp -r .next/static .next/standalone/.next/static || true
-          # Azure App Service用のweb.configをコピー
-          cp web.config .next/standalone/web.config
 
       # ▼▼▼【変更点2】アップロードするパスを standalone フォルダに変更 ▼▼▼
       - name: Upload artifact for deployment job
@@ -59,3 +57,4 @@ jobs:
           slot-name: 'Production'
           package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_E77F0C59B7374F9FB243FC8FCD1894FD }}
+          startup-command: 'PORT=8080 node server.js'
