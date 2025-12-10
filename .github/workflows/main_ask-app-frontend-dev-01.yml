@@ -29,8 +29,10 @@ jobs:
           npm install
           npm run build --if-present
           # スタンドアローンモードに必要な静的ファイルを正しい場所にコピーします
-          cp -r public .next/standalone/public
-          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public || true
+          cp -r .next/static .next/standalone/.next/static || true
+          # Azure App Service用のweb.configをコピー
+          cp web.config .next/standalone/web.config
 
       # ▼▼▼【変更点2】アップロードするパスを standalone フォルダに変更 ▼▼▼
       - name: Upload artifact for deployment job
