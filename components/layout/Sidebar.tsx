@@ -32,13 +32,10 @@ interface UserProfile {
   avatarUrl: string;
 }
 
-interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
-  className?: string;
-  userRole?: "student" | "teacher";
-}
-
-export function Sidebar({ className, userRole = "student" }: SidebarProps) {
-  
+// ------------------------------------------------------------------
+// 1. 中身だけのコンポーネントを作成 (exportしてHeaderでも使えるようにする)
+// ------------------------------------------------------------------
+export function SidebarContent() {
   // 仮のユーザーデータ
   const studentData: UserProfile = {
     name: "髙橋 由華",
@@ -47,7 +44,7 @@ export function Sidebar({ className, userRole = "student" }: SidebarProps) {
     avatarUrl: "/avatars/01.jpg",
   };
 
-  // メニューデータ
+  // メニューデータ（スクロール確認用に多めにしています）
   const classes = [
     { name: "メディアラボ", icon: Users, count: 9 },
     { name: "サイエンスラボ", icon: FlaskConical, count: 5 },
@@ -60,13 +57,18 @@ export function Sidebar({ className, userRole = "student" }: SidebarProps) {
     { name: "メディカルラボ", icon: Heart, count: 1 },
     { name: "1 - 1 地域共創", icon: LayoutGrid, count: 7 },
     { name: "1 - 2 地域共創", icon: Star, count: 8 },
+    { name: "生徒会執行部", icon: Users, count: 12 },
+    { name: "図書委員会", icon: Users, count: 4 },
+    { name: "放送委員会", icon: Users, count: 6 }, // 追加
+    { name: "保健委員会", icon: Users, count: 2 }, // 追加
   ];
 
   return (
-    <div className={cn("pb-12 w-[280px] bg-white border-r border-slate-200 h-screen flex flex-col font-sans", className)}>
-      
-      {/* 1. ヘッダーロゴエリア */}
-      <div className="px-6 pt-8 pb-4">
+    // h-full と min-h-0 が重要です。これで親（画面高さ）に収まろうとします。
+    <div className="flex flex-col h-full min-h-0 bg-white text-slate-900">
+       
+       {/* 1. ヘッダーロゴエリア (固定: shrink-0) */}
+       <div className="px-6 pt-8 pb-4 shrink-0">
         <div className="flex flex-col">
           <h2 className="text-sm font-bold text-primary tracking-wider mb-1 opacity-90">
             下妻第一高校
@@ -76,18 +78,13 @@ export function Sidebar({ className, userRole = "student" }: SidebarProps) {
             <h1 className="text-3xl font-black text-primary tracking-tight">
               カタリバ
             </h1>
-            <Button variant="ghost" size="icon" className="ml-auto text-slate-400 md:hidden">
-               <Menu className="h-6 w-6" />
-            </Button>
           </div>
         </div>
       </div>
 
-      {/* 2. ユーザープロフィールエリア */}
-      <div className="px-6 mb-6">
+      {/* 2. ユーザープロフィールエリア (固定: shrink-0) */}
+      <div className="px-6 mb-6 shrink-0">
         <div className="flex flex-col items-center">
-          
-          {/* 大きめのアバター */}
           <Avatar className="h-24 w-24 border-4 border-white shadow-sm mb-3">
             <AvatarImage src={studentData.avatarUrl} alt={studentData.name} className="object-cover" />
             <AvatarFallback className="text-3xl font-bold bg-slate-100 text-slate-400">
@@ -100,15 +97,12 @@ export function Sidebar({ className, userRole = "student" }: SidebarProps) {
               {studentData.name}
             </h3>
             
-            {/* 信号機ドット (4期間分 + ツールチップ) */}
             <div className="flex justify-center items-center gap-2 mb-3">
-              {/* 過去の評価（左から順に古い想定、または並び順指定通り） */}
-              <div className="w-3 h-3 rounded-full bg-green-500 shadow-sm" />  {/* 緑 */}
-              <div className="w-3 h-3 rounded-full bg-yellow-400 shadow-sm" /> {/* 黄 */}
-              <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm" />    {/* 赤 */}
-              <div className="w-3 h-3 rounded-full bg-yellow-400 shadow-sm" /> {/* 黄 */}
+              <div className="w-3 h-3 rounded-full bg-green-500 shadow-sm" />
+              <div className="w-3 h-3 rounded-full bg-yellow-400 shadow-sm" />
+              <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm" />
+              <div className="w-3 h-3 rounded-full bg-yellow-400 shadow-sm" />
               
-              {/* ヘルプアイコン（ツールチップ付き） */}
               <TooltipProvider>
                 <Tooltip delayDuration={300}>
                   <TooltipTrigger asChild>
@@ -131,8 +125,8 @@ export function Sidebar({ className, userRole = "student" }: SidebarProps) {
         </div>
       </div>
 
-      {/* 3. メインナビゲーション */}
-      <div className="px-4 mb-4 space-y-3">
+      {/* 3. メインナビゲーション (固定: shrink-0) */}
+      <div className="px-4 mb-4 space-y-3 shrink-0">
         <Button 
           variant="outline" 
           className="w-full justify-start h-12 text-base font-bold border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-lg shadow-sm"
@@ -153,16 +147,23 @@ export function Sidebar({ className, userRole = "student" }: SidebarProps) {
         </Button>
       </div>
 
-      <div className="px-6">
+      <div className="px-6 shrink-0">
         <div className="h-px bg-slate-200 w-full my-2" />
       </div>
 
-      {/* 4. クラス・ゼミリスト */}
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <h4 className="px-6 py-2 text-xs font-semibold text-slate-400 tracking-wider">
+      {/* 4. クラス・ゼミリスト (可変: flex-1, min-h-0) */}
+      {/* 
+          ここが重要です。
+          flex-1: 残りの高さを占有
+          min-h-0: 親コンテナを突き破らないようにする
+      */}
+      <div className="flex-1 min-h-0 flex flex-col">
+        <h4 className="px-6 py-2 text-xs font-semibold text-slate-400 tracking-wider shrink-0">
           クラス・ゼミ
         </h4>
-        <ScrollArea className="flex-1 px-4">
+        
+        {/* ScrollArea に h-full を指定して、親の flex-1 で確保した高さをいっぱいに使う */}
+        <ScrollArea className="h-full px-4 pb-4">
           <div className="space-y-1 pb-4">
             {classes.map((item, i) => (
               <Button
@@ -180,6 +181,23 @@ export function Sidebar({ className, userRole = "student" }: SidebarProps) {
           </div>
         </ScrollArea>
       </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------
+// 2. デスクトップ用サイドバー
+// ------------------------------------------------------------------
+interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
+  className?: string;
+  userRole?: "student" | "teacher";
+}
+
+export function Sidebar({ className, userRole = "student" }: SidebarProps) {
+  // ここでも h-full を指定し、親(page.tsxのh-screen)の高さを継承させる
+  return (
+    <div className={cn("w-[280px] bg-white border-r border-slate-200 h-full overflow-hidden", className)}>
+      <SidebarContent />
     </div>
   );
 }
