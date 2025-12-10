@@ -27,7 +27,12 @@ jobs:
       - name: npm install and build
         run: |
           npm install
+          # キャッシュをクリアしてクリーンビルド
+          rm -rf .next
           npm run build --if-present
+          # ビルド内容確認（デバッグ用）
+          echo "=== Built routes ==="
+          ls -la .next/standalone/.next/server/app/ | grep -E "(student|teacher)" || echo "student/teacher not found"
           # スタンドアローンモードに必要な静的ファイルを正しい場所にコピーします
           cp -r public .next/standalone/public || true
           cp -r .next/static .next/standalone/.next/static || true
