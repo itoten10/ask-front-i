@@ -11,6 +11,7 @@ import { FeaturedPostCard, NoticeCard, StandardPostCard } from "@/components/stu
 import { PostDetailModal } from "@/components/student/PostDetailModal";
 import { FeatureInfoModal } from "@/components/student/FeatureInfoModal";
 import { Button } from "@/components/ui/button";
+import { ThanksLetterView } from "@/components/student/ThanksLetterView";
 
 // ==========================================
 // Types
@@ -44,6 +45,12 @@ interface Notice {
 export default function StudentPage() {
   const [qrCodes, setQrCodes] = useState<Record<number, string>>({});
   
+  // 画面切り替え用のState ('home' = 投稿一覧, 'thanks' = 感謝の手紙)
+  const [currentView, setCurrentView] = useState<"home" | "thanks">("home");
+
+  // 感謝の手紙の残り枚数 (初期値3)
+  const [thanksCount, setThanksCount] = useState(3);
+
   // ==========================================
   // Dummy Data
   // [Backend Integration] ここは将来的に API (/api/posts/featured 等) から取得する
@@ -178,9 +185,20 @@ export default function StudentPage() {
     }
   };
 
+  // 画面遷移ハンドラ
+  const handleNavigate = (view: "home" | "thanks") => {
+    setCurrentView(view);
+  };
+
+  // 手紙送信完了時のハンドラ
+  const handleThanksComplete = () => {
+    setThanksCount((prev) => Math.max(0, prev - 1));
+  };
+
   return (
     <div className="flex h-screen bg-background font-sans overflow-hidden">
       
+      {/* 詳細モーダル (クリック時に表示) */}
       <PostDetailModal 
         post={selectedPost} 
         isOpen={!!selectedPost} 
@@ -189,6 +207,7 @@ export default function StudentPage() {
         onLike={handleLike}
       />
 
+      {/* 掲示板用機能のお知らせモーダル */}
       <FeatureInfoModal 
         open={showNoticeInfo} 
         onClose={() => setShowNoticeInfo(false)}
@@ -196,6 +215,7 @@ export default function StudentPage() {
         description={<>MVP内では詳細は非表示ですが、<br/>フェーズ2で各ゼミのアンケートなどを<br/>ここに反映予定です。</>}
       />
 
+      {/* コメント用機能のお知らせモーダル */}
       <FeatureInfoModal
         open={showCommentInfo}
         onClose={() => setShowCommentInfo(false)}
@@ -203,85 +223,91 @@ export default function StudentPage() {
         description={<>MVP内ではコメント機能は非表示ですが、<br /><strong>投稿数UP</strong>や<strong>生徒同士の情報共有</strong>を<br />促進するためにフェーズ2以降で実装予定です。</>}
       />
 
-      <Sidebar userRole="student" className="hidden md:flex flex-col h-full shrink-0" />
+      {/* サイドバー: badgeCount を渡す */}
+      <Sidebar 
+        userRole="student" 
+        className="hidden md:flex flex-col h-full shrink-0" 
+        onNavigate={handleNavigate}
+        badgeCount={thanksCount} 
+      />
 
       <div className="flex-1 flex flex-col h-full min-w-0 relative">
-        <Header />
+        {/* ヘッダー: badgeCount を渡す (スマホメニュー用) */}
+        <Header onNavigate={handleNavigate} badgeCount={thanksCount} />
 
-        {/* 
-            ID: student-main-scroll -> サイドバーの「ホーム」ボタンからスクロール制御するために使用
-            Ref: mainScrollRef -> 右下の「上へ戻る」ボタンから制御するために使用
-        */}
         <main 
           id="student-main-scroll"
           ref={mainScrollRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto bg-slate-50/50 p-4 md:p-8 scroll-smooth"
+          className={`flex-1 overflow-y-auto bg-slate-50/50 scroll-smooth ${currentView === 'home' ? 'p-4 md:p-8' : 'p-0'}`}
         >
-          <div className="w-full max-w-[1600px] mx-auto space-y-8 pb-20"> 
-            
-            <PostForm onSubmit={handlePostSubmit} />
+          {currentView === "home" ? (
+            // Home (Feed) View
+            <div className="w-full max-w-[1600px] mx-auto space-y-8 pb-20 animate-in fade-in slide-in-from-left-4 duration-500"> 
+              <PostForm onSubmit={handlePostSubmit} />
 
-            <CarouselList 
-              title="今週注目の &quot;やってみた&quot;" 
-              subTitle="※AIが自動でピックアップしています"
-              icon="👏"
-            >
-              {featuredPosts.map((post) => (
-                <FeaturedPostCard key={post.id} post={post} onClick={() => setSelectedPost(post)} />
-              ))}
-            </CarouselList>
+              <CarouselList 
+                title="今週注目の &quot;やってみた&quot;" 
+                subTitle="※AIが自動でピックアップしています"
+                icon="👏"
+              >
+                {featuredPosts.map((post) => (
+                  <FeaturedPostCard key={post.id} post={post} onClick={() => setSelectedPost(post)} />
+                ))}
+              </CarouselList>
 
-            <CarouselList title="校内掲示板" icon="📋">
-              {notices.map((notice) => (
-                <NoticeCard key={notice.id} notice={notice} qrCodeUrl={qrCodes[notice.id]} onClick={() => setShowNoticeInfo(true)} />
-              ))}
-            </CarouselList>
+              <CarouselList title="校内掲示板" icon="📋">
+                {notices.map((notice) => (
+                  <NoticeCard key={notice.id} notice={notice} qrCodeUrl={qrCodes[notice.id]} onClick={() => setShowNoticeInfo(true)} />
+                ))}
+              </CarouselList>
 
-            <section className="w-full py-4">
-              <div className="flex items-end justify-between mb-4 px-1">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl"><Grip className="h-8 w-8 text-primary/80" /></span> 
-                  <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
-                      すべての &quot;やってみた&quot;
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-1">みんなの試行錯誤を見てみよう</p>
+              <section className="w-full py-4">
+                <div className="flex items-end justify-between mb-4 px-1">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl"><Grip className="h-8 w-8 text-primary/80" /></span> 
+                    <div>
+                      <h2 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
+                        すべての &quot;やってみた&quot;
+                      </h2>
+                      <p className="text-xs text-slate-500 mt-1">みんなの試行錯誤を見てみよう</p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {posts.map((post) => (
-                  <StandardPostCard
-                    key={post.id}
-                    post={post}
-                    isLiked={likedPosts.has(post.id)}
-                    onLike={handleLike}
-                    onClick={() => setSelectedPost(post)}
-                    onComment={() => setShowCommentInfo(true)}
-                  />
-                ))}
-              </div>
-            </section>
-          </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {posts.map((post) => (
+                    <StandardPostCard
+                      key={post.id}
+                      post={post}
+                      isLiked={likedPosts.has(post.id)}
+                      onLike={handleLike}
+                      onClick={() => setSelectedPost(post)}
+                      onComment={() => setShowCommentInfo(true)}
+                    />
+                  ))}
+                </div>
+              </section>
+            </div>
+          ) : (
+            // Thanks Letter View
+            <div className="w-full h-full">
+              {/* onComplete を渡す */}
+              <ThanksLetterView 
+                onBack={() => handleNavigate("home")} 
+                onComplete={handleThanksComplete} 
+              />
+            </div>
+          )}
         </main>
 
-        {/* 右下の「トップへ戻る」フローティングボタン */}
-        <div 
-          className={`
-            fixed bottom-6 right-6 z-40 transition-all duration-300
-            ${showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"}
-          `}
-        >
-          <Button
-            onClick={scrollToTop}
-            className="rounded-full w-12 h-12 bg-primary text-white shadow-lg hover:bg-primary/90 hover:scale-110 transition-all"
-            size="icon"
-          >
-            <ArrowUp className="w-6 h-6" />
-          </Button>
-        </div>
+        {currentView === "home" && (
+          <div className={`fixed bottom-6 right-6 z-40 transition-all duration-300 ${showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"}`}>
+            <Button onClick={scrollToTop} className="rounded-full w-12 h-12 bg-primary text-white shadow-lg hover:bg-primary/90 hover:scale-110 transition-all" size="icon">
+              <ArrowUp className="w-6 h-6" />
+            </Button>
+          </div>
+        )}
 
       </div>
     </div>
