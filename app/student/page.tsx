@@ -7,8 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Pencil, Megaphone, Eye, User, ThumbsUp, MessageSquare, Grip } from "lucide-react"; 
-import { useState, useEffect } from "react";
+import { Textarea } from "@/components/ui/textarea"; // 追加
+import { 
+  Pencil, Megaphone, Eye, User, ThumbsUp, MessageSquare, Grip, 
+  X, Check, Sparkles, ChevronDown, ChevronUp 
+} from "lucide-react"; 
+import { useState, useEffect, useRef } from "react";
 import QRCode from "qrcode";
 
 // ==========================================
@@ -25,6 +29,12 @@ interface Post {
   isMyPost?: boolean;
   likeCount: number;
   likedByMe?: boolean;
+  // 新着演出用のフラグを追加
+  isNew?: boolean; 
+  // 詳細表示用に画像から読み取ったフィールドを追加（オプショナル）
+  theme?: string;
+  phases?: string[];
+  questionState?: string;
 }
 
 interface Notice {
@@ -47,12 +57,51 @@ const getAvatarUrl = (id: number, isMyPost: boolean = false) => {
   return `/avatars/0${num}.jpg`;
 };
 
+// ==========================================
+// Components: ThankYouModal
+// ==========================================
+function ThankYouModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  if (!open) return null;
+  
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
+      <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 text-center transform animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 border-2 border-slate-100 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+          <X className="w-5 h-5" />
+        </button>
+        
+        <div className="mb-6 flex justify-center">
+           {/* クラッカーのような演出アイコン */}
+           <div className="relative">
+             <span className="text-6xl animate-bounce delay-100 inline-block">🎉</span>
+             <Sparkles className="absolute -top-2 -right-4 text-yellow-400 w-8 h-8 animate-pulse" />
+             <Sparkles className="absolute top-4 -left-6 text-yellow-400 w-6 h-6 animate-pulse delay-75" />
+           </div>
+        </div>
+
+        <h3 className="text-2xl font-bold text-slate-800 mb-2 font-en">Thank you!</h3>
+        <p className="text-slate-500 mb-8 text-lg leading-relaxed">
+          あなたの小さな一歩が、<br/>
+          新しい発見につながります
+        </p>
+        
+        <div className="flex justify-center">
+           <button 
+             onClick={onClose} 
+             className="text-slate-500 hover:text-slate-800 flex items-center gap-1 text-sm font-medium transition-colors"
+           >
+             Close <X className="w-4 h-4" />
+           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StudentPage() {
   const [qrCodes, setQrCodes] = useState<Record<number, string>>({});
-  const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
-
+  
   // ダミーデータ: 注目投稿
-  // ※ isMyPost フラグを追加してアバター判定に使用
   const featuredPosts: Post[] = [
     { id: 1, labName: "メディアラボ", authorName: "佐藤 優", content: "文化祭のポスターデザインについて、色使いの心理的効果を調べてみた。青色は信頼感を与えるらしい。", isViewedByTeacher: true, likeCount: 12 },
     { id: 2, labName: "工学ラボ", authorName: "匿名", content: "3Dプリンターのフィラメント詰まりを解消する方法を試行錯誤した結果、温度設定が鍵だとわかった。", isViewedByTeacher: true, isAnonymous: true, likeCount: 8 },
@@ -98,6 +147,24 @@ export default function StudentPage() {
     { id: 6, date: "11/10", labName: "図書委員会", title: "読書感想文コンクールの作品募集", deadline: "11/30", url: "https://library.example.com/contest" },
   ];
 
+  // State管理
+  // 初期値にallPostsDummyを使用することで、既存データを維持しつつ新規追加に対応
+  const [posts, setPosts] = useState<Post[]>(allPostsDummy);
+  const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
+
+  // フォームUI用のState
+  const [isFormExpanded, setIsFormExpanded] = useState(false);
+  const [showThankYou, setShowThankYou] = useState(false);
+  
+  // フォーム入力値用のState (PDFの入力項目に合わせて作成)
+  const [selectedPhases, setSelectedPhases] = useState<string[]>([]);
+  const [themeInput, setThemeInput] = useState("");
+  const [content1, setContent1] = useState("");
+  const [content2, setContent2] = useState("");
+  const [content3, setContent3] = useState("");
+  const [questionState, setQuestionState] = useState("");
+  const [isNamePublic, setIsNamePublic] = useState(false); // 「氏名を公開する」
+
   useEffect(() => {
     const generateQRs = async () => {
       const codes: Record<number, string> = {};
@@ -113,15 +180,49 @@ export default function StudentPage() {
     generateQRs();
 
     const initialLiked = new Set<number>();
-    allPostsDummy.forEach(post => {
+    posts.forEach(post => {
       if (post.likedByMe) initialLiked.add(post.id);
     });
     setLikedPosts(initialLiked);
   }, []);
 
+  // 投稿ハンドラ
   const handlePostSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Post submitted (Mock)");
+    if (!content1.trim()) return;
+
+    // 現在の日付を取得
+    const today = new Date();
+    const dateString = `${today.getMonth() + 1}月${today.getDate()}日`;
+
+    // 新しい投稿オブジェクトを作成
+    const newPost: Post = {
+      id: Date.now(), // 一時的なID
+      labName: "メディアラボ", 
+      authorName: isNamePublic ? "髙橋 由華" : "匿名", // チェックがあれば実名
+      content: [content1, content2, content3].filter(Boolean).join("\n\n"), // 複数の入力を結合
+      isViewedByTeacher: false,
+      isAnonymous: !isNamePublic,
+      isMyPost: true,
+      likeCount: 0,
+      isNew: true, // ★ 新着演出フラグ
+      // 拡張フィールド
+      phases: selectedPhases,
+      theme: themeInput,
+      questionState: questionState
+    };
+
+    // リストの先頭に追加 (Optimistic Update)
+    setPosts([newPost, ...posts]);
+    
+    // フォームをリセットして閉じる
+    setContent1(""); setContent2(""); setContent3("");
+    setThemeInput(""); setSelectedPhases([]); setQuestionState("");
+    setIsNamePublic(false);
+    setIsFormExpanded(false);
+    
+    // サンキューポップアップ表示
+    setShowThankYou(true);
   };
 
   const handleLike = (postId: number) => {
@@ -138,9 +239,21 @@ export default function StudentPage() {
     setLikedPosts(newLiked);
   };
 
+  // フェーズ選択のトグル
+  const togglePhase = (phase: string) => {
+    if (selectedPhases.includes(phase)) {
+      setSelectedPhases(selectedPhases.filter(p => p !== phase));
+    } else {
+      setSelectedPhases([...selectedPhases, phase]);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-background font-sans overflow-hidden">
       
+      {/* サンキューポップアップ */}
+      <ThankYouModal open={showThankYou} onClose={() => setShowThankYou(false)} />
+
       <Sidebar userRole="student" className="hidden md:flex flex-col h-full shrink-0" />
 
       <div className="flex-1 flex flex-col h-full min-w-0">
@@ -149,29 +262,176 @@ export default function StudentPage() {
         <main className="flex-1 overflow-y-auto bg-slate-50/50 p-4 md:p-8">
           <div className="w-full max-w-[1600px] mx-auto space-y-12 pb-20">
             
-            <Card className="border border-slate-200 shadow-sm bg-white hover:border-primary/30 transition-colors">
-              <CardContent className="p-3">
-                <form onSubmit={handlePostSubmit} className="flex items-center gap-4 px-2 py-1">
-                  <Avatar className="h-12 w-12 border-2 border-slate-100">
-                    {/* 自分のアバターは固定で01 */}
-                    <AvatarImage src="/avatars/01.jpg" alt="My Avatar" />
-                    <AvatarFallback>私</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 relative">
-                    <Input 
-                      placeholder="あなたの小さな &quot;やってみた&quot; を共有しよう！" 
-                      className="border-none shadow-none text-lg placeholder:text-slate-400 focus-visible:ring-0 h-12 bg-transparent"
-                    />
+            {/* 
+              ==========================================
+              投稿フォームエリア（PDF再現）
+              ==========================================
+            */}
+            <Card className={`
+              border shadow-sm bg-white overflow-hidden transition-all duration-300 ease-in-out
+              ${isFormExpanded ? "border-primary/50 ring-1 ring-primary/20 shadow-md" : "border-slate-200 hover:border-primary/30"}
+            `}>
+              <CardContent className="p-0">
+                {/* 1. 閉じた状態（1行のInput風） */}
+                {!isFormExpanded && (
+                  <div 
+                    onClick={() => setIsFormExpanded(true)}
+                    className="flex items-center p-4 cursor-text group"
+                  >
+                     <Avatar className="h-12 w-12 border-2 border-slate-100 mr-4">
+                        <AvatarImage src="/avatars/01.jpg" alt="My Avatar" />
+                        <AvatarFallback>私</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 relative">
+                        <div className="text-slate-400 text-lg">
+                          あなたの小さな &quot;やってみた&quot; を共有しよう！
+                        </div>
+                      </div>
+                      <div className="flex gap-2 text-slate-400 group-hover:text-primary transition-colors">
+                        <Pencil className="h-5 w-5" />
+                        <Megaphone className="h-5 w-5" />
+                      </div>
                   </div>
-                  <div className="flex gap-2 text-slate-400">
-                    <Button type="button" variant="ghost" size="icon" className="hover:text-primary hover:bg-primary/10 transition-colors">
-                      <Pencil className="h-6 w-6" />
-                    </Button>
-                    <Button type="button" variant="ghost" size="icon" className="hover:text-primary hover:bg-primary/10 transition-colors">
-                      <Megaphone className="h-6 w-6" />
-                    </Button>
-                  </div>
-                </form>
+                )}
+
+                {/* 2. 開いた状態（詳細フォーム） */}
+                {isFormExpanded && (
+                  <form onSubmit={handlePostSubmit} className="flex flex-col animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex p-6 gap-6">
+                      {/* 左側：アバター */}
+                      <div className="shrink-0">
+                        <Avatar className="h-14 w-14 border-2 border-slate-100">
+                          <AvatarImage src="/avatars/01.jpg" alt="My Avatar" />
+                          <AvatarFallback>私</AvatarFallback>
+                        </Avatar>
+                      </div>
+
+                      {/* 右側：入力フィールド群 */}
+                      <div className="flex-1 space-y-6">
+                        
+                        {/* フェーズ選択 */}
+                        <div className="space-y-2 relative">
+                           <div className="flex justify-between items-center">
+                             <label className="text-sm font-bold text-slate-800">
+                               現在の探究学習のフェーズを教えてください。<span className="text-xs font-normal text-slate-500 ml-2">(複数選択可)</span>
+                             </label>
+                             <button type="button" onClick={() => setIsFormExpanded(false)} className="text-xs text-primary font-bold hover:underline">
+                               折りたたむ
+                             </button>
+                           </div>
+                           <div className="flex flex-wrap gap-3">
+                             {["テーマ設定", "課題設定", "情報収集", "実験・調査", "分析", "発表準備"].map((phase) => (
+                               <label key={phase} className="flex items-center gap-2 cursor-pointer select-none">
+                                 <div 
+                                   className={`w-4 h-4 border rounded flex items-center justify-center transition-colors ${selectedPhases.includes(phase) ? "bg-slate-800 border-slate-800 text-white" : "border-slate-300 bg-white"}`}
+                                   onClick={(e) => { e.preventDefault(); togglePhase(phase); }}
+                                 >
+                                   {selectedPhases.includes(phase) && <Check className="w-3 h-3" />}
+                                 </div>
+                                 <span className="text-sm text-slate-600">{phase}</span>
+                               </label>
+                             ))}
+                           </div>
+                        </div>
+
+                        {/* テーマ・問い */}
+                        <div className="space-y-2">
+                           <label className="text-sm font-bold text-slate-800">
+                             取り組んでいるテーマ・問いを教えてください。
+                           </label>
+                           <Input 
+                             value={themeInput}
+                             onChange={(e) => setThemeInput(e.target.value)}
+                             placeholder="例：なぜ○○は効果的なのだろうか？"
+                             className="bg-white border-slate-300 focus-visible:ring-primary/30"
+                           />
+                        </div>
+
+                        {/* やってみた内容（3段構成） */}
+                        <div className="space-y-3">
+                           <div className="space-y-1">
+                             <label className="text-sm font-bold text-slate-800">
+                               何をやってみた？なぜそれをやったの？どんな気づきがあった？詳しく書いてみよう*
+                             </label>
+                             <p className="text-xs text-slate-500 font-medium">
+                               結果の良し悪しは問いません。あなたの&quot;やってみた&quot;に価値があります！
+                             </p>
+                           </div>
+
+                           <div className="flex gap-2">
+                             <span className="text-slate-300 font-serif italic pt-1">①</span>
+                             <Textarea 
+                               value={content1}
+                               onChange={(e) => setContent1(e.target.value)}
+                               placeholder="例：今日少し調べたこと、チームで話したこと、試しにやってみたこと"
+                               className="min-h-[80px] resize-none border-slate-300 focus-visible:ring-primary/30"
+                             />
+                           </div>
+                           <div className="flex gap-2">
+                             <span className="text-slate-300 font-serif italic pt-1">②</span>
+                             <Textarea 
+                               value={content2}
+                               onChange={(e) => setContent2(e.target.value)}
+                               placeholder="他にもあれば"
+                               className="min-h-[60px] resize-none border-slate-300 focus-visible:ring-primary/30"
+                             />
+                           </div>
+                           <div className="flex gap-2">
+                             <span className="text-slate-300 font-serif italic pt-1">③</span>
+                             <Textarea 
+                               value={content3}
+                               onChange={(e) => setContent3(e.target.value)}
+                               placeholder="他にもあれば"
+                               className="min-h-[60px] resize-none border-slate-300 focus-visible:ring-primary/30"
+                             />
+                           </div>
+                        </div>
+
+                        {/* 問いの変化 */}
+                        <div className="space-y-2">
+                           <label className="text-sm font-bold text-slate-800">
+                             もともと設定していた問いはどうなりましたか？
+                           </label>
+                           <div className="space-y-2">
+                             {["問いが深まった・変化した", "問いの検証が進んだ", "周辺の準備作業をした"].map((qState) => (
+                               <label key={qState} className="flex items-center gap-2 cursor-pointer group">
+                                 <div 
+                                   className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${questionState === qState ? "border-primary" : "border-slate-300 group-hover:border-slate-400"}`}
+                                   onClick={() => setQuestionState(qState)}
+                                 >
+                                   {questionState === qState && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                                 </div>
+                                 <span className="text-sm text-slate-700">{qState}</span>
+                               </label>
+                             ))}
+                           </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {/* 下部アクションバー */}
+                    <div className="border-t border-slate-100 bg-slate-50/50 p-4 flex justify-end items-center gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                         <div 
+                           className={`w-5 h-5 border rounded flex items-center justify-center bg-white transition-colors ${isNamePublic ? "border-slate-800 text-slate-800" : "border-slate-300"}`}
+                           onClick={(e) => { e.preventDefault(); setIsNamePublic(!isNamePublic); }}
+                         >
+                           {isNamePublic && <Check className="w-3.5 h-3.5" />}
+                         </div>
+                         <span className="text-sm font-bold text-slate-700">氏名を公開する</span>
+                      </label>
+                      
+                      <Button 
+                        type="submit" 
+                        disabled={!content1.trim()}
+                        className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-8 py-2 rounded shadow-sm transition-transform active:scale-95"
+                      >
+                        投稿
+                      </Button>
+                    </div>
+                  </form>
+                )}
               </CardContent>
             </Card>
 
@@ -287,18 +547,32 @@ export default function StudentPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {allPostsDummy.map((post) => {
+                {posts.map((post) => {
                   const isLiked = likedPosts.has(post.id);
                   const currentLikeCount = post.likeCount + (isLiked && !post.likedByMe ? 1 : 0) - (!isLiked && post.likedByMe ? 1 : 0);
+                  const postDate = post.isNew ? "12月18日" : "12月10日"; // デモ用日付
 
                   return (
                     <Card 
                       key={post.id} 
                       className={`
-                        h-full border bg-white transition-all duration-300 flex flex-col
-                        ${post.isMyPost ? "border-primary/40 bg-primary/5" : "border-slate-200 hover:border-primary hover:shadow-md cursor-pointer"}
+                        h-full flex flex-col transition-all duration-300 relative overflow-hidden
+                        ${post.isNew 
+                          ? "border-2 border-yellow-400 bg-white shadow-[0_0_20px_rgba(250,204,21,0.25)] animate-in slide-in-from-top-4 fade-in zoom-in-95" 
+                          : post.isMyPost 
+                            ? "border border-primary/40 bg-primary/5" 
+                            : "border border-slate-200 bg-white hover:border-primary hover:shadow-md cursor-pointer"}
                       `}
                     >
+                      {/* キラーん演出：新着バッジ */}
+                      {post.isNew && (
+                        <div className="absolute top-0 left-0">
+                           <span className="inline-flex items-center justify-center px-3 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-[10px] font-bold tracking-wider shadow-md rounded-br-lg">
+                             New ✨
+                           </span>
+                        </div>
+                      )}
+
                       <CardContent className="p-6 flex-1 flex flex-col space-y-4">
                         <div className="flex items-start gap-3">
                           <Avatar className="h-12 w-12 border border-slate-200 bg-white">
@@ -310,18 +584,28 @@ export default function StudentPage() {
                           <div>
                             <p className="text-xs font-bold text-slate-500 mb-0.5">{post.labName}</p>
                             <p className="font-bold text-base text-slate-900">{post.authorName}</p>
-                            <div className="text-[10px] text-slate-400 mt-0.5">12月10日</div>
+                            <div className="text-[10px] text-slate-400 mt-0.5">{postDate}</div>
                           </div>
                         </div>
                         
                         <div className="flex-1">
-                          <h3 className="font-bold text-sm text-slate-800 mb-2 line-clamp-2 min-h-[1.25rem]">
-                            {post.content.includes('\n') ? post.content.split('\n')[0] : ''} 
-                          </h3>
+                          {/* 問いがある場合はタイトルとして表示（新着投稿用） */}
+                          {post.theme && (
+                            <h3 className="font-bold text-sm text-slate-900 mb-2 leading-tight">
+                              {post.theme}
+                            </h3>
+                          )}
+                          {/* ダミーデータの場合は改行の最初をタイトル風に */}
+                          {!post.theme && (
+                            <h3 className="font-bold text-sm text-slate-800 mb-2 line-clamp-2 min-h-[1.25rem]">
+                              {post.content.includes('\n') ? post.content.split('\n')[0] : ''} 
+                            </h3>
+                          )}
+
                           <p className="text-xs text-slate-600 leading-relaxed line-clamp-4 whitespace-pre-wrap">
                             {post.content}
                           </p>
-                          <div className="mt-2 text-xs text-primary/80 font-medium cursor-pointer hover:underline">
+                          <div className="mt-2 text-xs text-primary/80 font-medium cursor-pointer hover:underline flex items-center gap-1">
                             詳細を表示
                           </div>
                         </div>
