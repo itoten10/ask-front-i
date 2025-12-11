@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react"; // useRef, useEffect 追加
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
-import { Pencil, Megaphone, Check, X, Sparkles } from "lucide-react";
+import { Pencil, Megaphone, Check } from "lucide-react";
+// ★ 変更: 共通モーダルをインポート
+import { ThankYouModal } from "@/components/student/ThankYouModal";
 
-// (中略: PostData, PostFormProps, ThankYouModal は変更なし)
 interface PostData {
   content: string;
   theme: string;
@@ -21,63 +22,26 @@ interface PostFormProps {
   onSubmit: (data: PostData) => void;
 }
 
-// ... ThankYouModalのコードはそのまま ...
-function ThankYouModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
-      <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 text-center transform animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 border-2 border-slate-100 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
-          <X className="w-5 h-5" />
-        </button>
-        <div className="mb-6 flex justify-center">
-           <div className="relative">
-             <span className="text-6xl animate-bounce delay-100 inline-block">🎉</span>
-             <Sparkles className="absolute -top-2 -right-4 text-yellow-400 w-8 h-8 animate-pulse" />
-             <Sparkles className="absolute top-4 -left-6 text-yellow-400 w-6 h-6 animate-pulse delay-75" />
-           </div>
-        </div>
-        <h3 className="text-2xl font-bold text-slate-800 mb-2 font-en">Thank you!</h3>
-        <p className="text-slate-500 mb-8 text-lg leading-relaxed">
-          あなたの小さな一歩が、<br/>
-          新しい発見につながります
-        </p>
-        <div className="flex justify-center">
-           <button onClick={onClose} className="text-slate-500 hover:text-slate-800 flex items-center gap-1 text-sm font-medium transition-colors">
-             Close <X className="w-4 h-4" />
-           </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function PostForm({ onSubmit }: PostFormProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
-  
-  // ★ 追加: 外部クリック検知用のRef
   const formRef = useRef<HTMLDivElement>(null);
 
-  // ★ 追加: 外部クリック検知ロジック
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (formRef.current && !formRef.current.contains(event.target as Node)) {
-        // フォームが開いていて、かつクリックされたのがフォームの外側なら閉じる
         if (isExpanded) {
           setIsExpanded(false);
         }
       }
     }
-    // イベントリスナーを追加
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      // クリーンアップ
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isExpanded]);
 
-  // Form States (変更なし)
+  // Form States
   const [selectedPhases, setSelectedPhases] = useState<string[]>([]);
   const [themeInput, setThemeInput] = useState("");
   const [content1, setContent1] = useState("");
@@ -118,11 +82,11 @@ export function PostForm({ onSubmit }: PostFormProps) {
     <>
       <ThankYouModal open={showThankYou} onClose={() => setShowThankYou(false)} />
       
-      {/* ★ 変更: RefをCardに割り当て */}
       <Card ref={formRef} className={`
         border shadow-sm bg-white overflow-hidden transition-all duration-300 ease-in-out
         ${isExpanded ? "border-primary/50 ring-1 ring-primary/20 shadow-md" : "border-slate-200 hover:border-primary/30"}
       `}>
+        {/* ... (中身のJSXは変更なしのため省略します。元のコードのまま記述してください) ... */}
         <CardContent className="p-0">
           {!isExpanded ? (
             <div 
@@ -145,7 +109,6 @@ export function PostForm({ onSubmit }: PostFormProps) {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col animate-in fade-in slide-in-from-top-2 duration-300">
-              {/* 中身は変更なし */}
               <div className="flex p-6 gap-6">
                 <div className="shrink-0">
                   <Avatar className="h-14 w-14 border-2 border-slate-100">
@@ -161,7 +124,6 @@ export function PostForm({ onSubmit }: PostFormProps) {
                        <label className="text-sm font-bold text-slate-800">
                          現在の探究学習のフェーズを教えてください。<span className="text-xs font-normal text-slate-500 ml-2">(複数選択可)</span>
                        </label>
-                       {/* ボタンでの折りたたみも維持 */}
                        <button type="button" onClick={() => setIsExpanded(false)} className="text-xs text-primary font-bold hover:underline">
                          折りたたむ
                        </button>

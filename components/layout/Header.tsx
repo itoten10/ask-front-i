@@ -1,3 +1,5 @@
+"use client";
+
 import { Search, Menu, Bell } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -5,35 +7,47 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
-  SheetTitle, // アクセシビリティのために必要
+  SheetTitle,
 } from "@/components/ui/sheet";
-import { SidebarContent } from "@/components/layout/Sidebar"; // さっき作った中身をインポート
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden"; // タイトル隠し用（もしインストールされていなければ後述）
+import { SidebarContent } from "@/components/layout/Sidebar";
+import { useState } from "react";
 
-export function Header() {
+interface HeaderProps {
+  onNavigate?: (view: "home" | "thanks") => void;
+  badgeCount?: number; // ★ 追加
+}
+
+export function Header({ onNavigate, badgeCount = 0 }: HeaderProps) { // ★ 受け取る
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleMobileNavigate = (view: "home" | "thanks") => {
+    if (onNavigate) {
+      onNavigate(view);
+    }
+    setIsOpen(false);
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full bg-primary text-primary-foreground shadow-md h-16">
       <div className="container mx-auto flex h-full items-center px-4 justify-between">
         
-        {/* 左側：ロゴエリア（スマホ用のメニューボタン含む） */}
         <div className="flex items-center gap-4">
-          
-          {/* ハンバーガーメニュー (Sheet Trigger) */}
-          <Sheet>
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden text-primary-foreground hover:bg-white/10">
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">メニューを開く</span>
+                {/* ★ 追加: スマホでもバッジがあることをさりげなく通知 */}
+                {badgeCount > 0 && (
+                  <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-red-500 border border-primary ring-1 ring-white" />
+                )}
               </Button>
             </SheetTrigger>
             
-            {/* 左側から出てくるメニューの中身 */}
             <SheetContent side="left" className="p-0 w-[280px]">
-              {/* アクセシビリティ対応: スクリーンリーダー用のタイトル */}
               <SheetTitle className="sr-only">ナビゲーションメニュー</SheetTitle>
-              
-              {/* サイドバーの中身をここに埋め込む */}
-              <SidebarContent />
+              {/* ★ 修正: badgeCountを渡す */}
+              <SidebarContent onNavigate={handleMobileNavigate} badgeCount={badgeCount} />
             </SheetContent>
           </Sheet>
 
@@ -41,14 +55,12 @@ export function Header() {
             <span className="text-sm font-bold opacity-90">下妻第一高校</span>
             <span className="text-xl font-black tracking-widest">カタリバ</span>
           </div>
-          {/* スマホ時はロゴだけ出すなどの調整も可 */}
           <div className="md:hidden flex flex-col leading-tight">
              <span className="text-xs font-bold opacity-90">下妻一高</span>
              <span className="text-lg font-black tracking-widest">カタリバ</span>
           </div>
         </div>
 
-        {/* 中央：検索バー */}
         <div className="flex-1 max-w-xl mx-4">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-white/70" />
@@ -60,7 +72,6 @@ export function Header() {
           </div>
         </div>
 
-        {/* 右側：アイコン */}
         <div className="flex items-center gap-2">
            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/10">
              <Bell className="h-5 w-5" />
