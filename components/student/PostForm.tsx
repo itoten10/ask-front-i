@@ -1,3 +1,5 @@
+// ask-front-i/components/student/PostForm.tsx
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";

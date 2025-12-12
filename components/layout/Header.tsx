@@ -14,10 +14,13 @@ import { useState } from "react";
 
 interface HeaderProps {
   onNavigate?: (view: "home" | "thanks") => void;
-  badgeCount?: number; // ★ 追加
+  badgeCount?: number;
+  userName?: string;
+  userAvatar?: string;
+  userRole?: "student" | "teacher";
 }
 
-export function Header({ onNavigate, badgeCount = 0 }: HeaderProps) { // ★ 受け取る
+export function Header({ onNavigate, badgeCount = 0, userName, userAvatar, userRole = "student" }: HeaderProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleMobileNavigate = (view: "home" | "thanks") => {
@@ -37,7 +40,6 @@ export function Header({ onNavigate, badgeCount = 0 }: HeaderProps) { // ★ 受
               <Button variant="ghost" size="icon" className="md:hidden text-primary-foreground hover:bg-white/10">
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">メニューを開く</span>
-                {/* ★ 追加: スマホでもバッジがあることをさりげなく通知 */}
                 {badgeCount > 0 && (
                   <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-red-500 border border-primary ring-1 ring-white" />
                 )}
@@ -46,8 +48,13 @@ export function Header({ onNavigate, badgeCount = 0 }: HeaderProps) { // ★ 受
             
             <SheetContent side="left" className="p-0 w-[280px]">
               <SheetTitle className="sr-only">ナビゲーションメニュー</SheetTitle>
-              {/* ★ 修正: badgeCountを渡す */}
-              <SidebarContent onNavigate={handleMobileNavigate} badgeCount={badgeCount} />
+              <SidebarContent 
+                onNavigate={handleMobileNavigate} 
+                badgeCount={badgeCount}
+                userName={userName}
+                userAvatar={userAvatar}
+                userRole={userRole}
+              />
             </SheetContent>
           </Sheet>
 

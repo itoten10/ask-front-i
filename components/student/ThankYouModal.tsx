@@ -1,3 +1,5 @@
+// ask-front-i/components/student/ThankYouModal.tsx
+
 "use client";
 
 import { X, Sparkles } from "lucide-react";

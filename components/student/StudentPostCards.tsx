@@ -1,3 +1,5 @@
+// ask-front-i/components/student/StudentPostCards.tsx
+
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
