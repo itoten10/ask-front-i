@@ -1,3 +1,5 @@
+// ask-front-i/app/page.tsx
+
 "use client";
 
 import Image from "next/image";

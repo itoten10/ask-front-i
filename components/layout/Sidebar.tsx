@@ -1,3 +1,5 @@
+// ask-front-i/components/layout/Sidebar.tsx
+
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -29,21 +31,26 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   userRole?: "student" | "teacher";
   onNavigate?: (view: "home" | "thanks") => void;
   badgeCount?: number;
+  userName?: string;
+  userAvatar?: string;
 }
 
 interface SidebarContentProps {
   onNavigate?: (view: "home" | "thanks") => void;
   badgeCount?: number;
+  userName?: string;
+  userAvatar?: string;
+  userRole?: "student" | "teacher";
 }
 
-export function SidebarContent({ onNavigate, badgeCount = 0 }: SidebarContentProps) {
+export function SidebarContent({ onNavigate, badgeCount = 0, userName, userAvatar, userRole = "student" }: SidebarContentProps) {
   const [showFeatureInfo, setShowFeatureInfo] = useState(false);
 
   const studentData: UserProfile = {
-    name: "髙橋 由華",
+    name: userName || "髙橋 由華",
     class: "2年4組",
     lab: "メディアラボ",
-    avatarUrl: "/avatars/01.jpg",
+    avatarUrl: userAvatar || "/avatars/01.jpg",
   };
 
   // 省略なしのフルリスト
@@ -56,7 +63,7 @@ export function SidebarContent({ onNavigate, badgeCount = 0 }: SidebarContentPro
     { name: "フィジカルラボ", icon: HeartPulse, count: 4 },
     { name: "文化教育ゼミ", icon: Palette, count: 6 },
     { name: "地域ビジネスゼミ", icon: MapPin, count: 7 },
-    { name: "メディカルラボ", icon: Heart, count: 1 },
+    // メディカルラボは先生表示では不要のため削除
     { name: "1 - 1 地域共創", icon: LayoutGrid, count: 7 },
     { name: "1 - 2 地域共創", icon: Star, count: 8 },
     { name: "生徒会執行部", icon: Users, count: 12 },
@@ -71,8 +78,13 @@ export function SidebarContent({ onNavigate, badgeCount = 0 }: SidebarContentPro
     }
     setTimeout(() => {
         const mainContainer = document.getElementById("student-main-scroll");
+        // 先生ページの場合も考慮してIDチェック
+        const teacherContainer = document.getElementById("teacher-main-scroll");
+        
         if (mainContainer) {
           mainContainer.scrollTo({ top: 0, behavior: "smooth" });
+        } else if (teacherContainer) {
+          teacherContainer.scrollTo({ top: 0, behavior: "smooth" });
         }
     }, 10);
   };
@@ -99,7 +111,7 @@ export function SidebarContent({ onNavigate, badgeCount = 0 }: SidebarContentPro
         }
       />
 
-      <div className="flex flex-col h-full min-h-0 bg-white text-slate-900">
+      <div className="flex flex-col h-screen min-h-0 bg-white text-slate-900">
          {/* ヘッダーロゴエリア */}
          <div className="px-6 pt-8 pb-4 shrink-0">
           <div className="flex flex-col">
@@ -128,25 +140,37 @@ export function SidebarContent({ onNavigate, badgeCount = 0 }: SidebarContentPro
               <h3 className="text-xl font-bold text-slate-900 tracking-wide mb-2">
                 {studentData.name}
               </h3>
-              <div className="flex justify-center items-center gap-2 mb-3">
-                <div className="w-3 h-3 rounded-full bg-green-500 shadow-sm" />
-                <div className="w-3 h-3 rounded-full bg-yellow-400 shadow-sm" />
-                <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm" />
-                <div className="w-3 h-3 rounded-full bg-yellow-400 shadow-sm" />
-                <TooltipProvider>
-                  <Tooltip delayDuration={300}>
-                    <TooltipTrigger asChild>
-                      <div className="ml-1 w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center text-[10px] text-slate-400 cursor-help hover:bg-slate-100 transition-colors">?</div>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-[200px] text-xs bg-slate-800 text-white border-slate-700">
-                      <p>投稿の「量（回数）」、「質（AI評価）」、「感謝の手紙（他者評価）」を合計して一定期間毎に算出してます</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
+              
+              {/* 
+                ★修正箇所: 信号マーク（非認知スコア）は生徒ロールの時のみ表示
+                先生（teacher）の場合は表示しない
+              */}
+              {userRole === "student" && (
+                <div className="flex justify-center items-center gap-2 mb-3">
+                  <div className="w-3 h-3 rounded-full bg-green-500 shadow-sm" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-400 shadow-sm" />
+                  <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-400 shadow-sm" />
+                  <TooltipProvider>
+                    <Tooltip delayDuration={300}>
+                      <TooltipTrigger asChild>
+                        <div className="ml-1 w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center text-[10px] text-slate-400 cursor-help hover:bg-slate-100 transition-colors">?</div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[200px] text-xs bg-slate-800 text-white border-slate-700">
+                        <p>投稿の「量（回数）」、「質（AI評価）」、「感謝の手紙（他者評価）」を合計して一定期間毎に算出してます</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              )}
+
               <div className="text-sm font-medium text-slate-500 leading-relaxed">
                 <p>{studentData.class}</p>
-                <p>{studentData.lab}</p>
+                {userRole === "teacher" ? (
+                  <p>担当: {studentData.lab}</p>
+                ) : (
+                  <p>{studentData.lab}</p>
+                )}
               </div>
             </div>
           </div>
@@ -163,28 +187,31 @@ export function SidebarContent({ onNavigate, badgeCount = 0 }: SidebarContentPro
             ホーム
           </Button>
 
-          <Button 
-            variant="ghost" 
-            onClick={handleThanksClick}
-            className={cn(
-              "w-full justify-start h-12 text-base font-bold px-4 transition-all duration-300 group relative overflow-hidden",
-              badgeCount > 0 
-                ? "text-slate-800 bg-yellow-50 border-2 border-yellow-400 hover:bg-yellow-100 hover:border-yellow-500 shadow-[0_0_15px_rgba(250,204,21,0.3)]" 
-                : "text-slate-600 hover:bg-slate-50 border-2 border-transparent"
-            )}
-          >
-            <Mail className={cn(
-              "mr-3 h-5 w-5 transition-colors",
-              badgeCount > 0 ? "text-yellow-600 group-hover:text-yellow-700" : "opacity-70"
-            )} />
-            感謝の手紙を書く
-            
-            {badgeCount > 0 && (
-              <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow-sm animate-bounce">
-                {badgeCount}
-              </span>
-            )}
-          </Button>
+          {/* NOTE: 教師は感謝の手紙を書かないのでボタンを非表示 */}
+          {userRole === "student" && (
+            <Button 
+              variant="ghost" 
+              onClick={handleThanksClick}
+              className={cn(
+                "w-full justify-start h-12 text-base font-bold px-4 transition-all duration-300 group relative overflow-hidden",
+                badgeCount > 0 
+                  ? "text-slate-800 bg-yellow-50 border-2 border-yellow-400 hover:bg-yellow-100 hover:border-yellow-500 shadow-[0_0_15px_rgba(250,204,21,0.3)]" 
+                  : "text-slate-600 hover:bg-slate-50 border-2 border-transparent"
+              )}
+            >
+              <Mail className={cn(
+                "mr-3 h-5 w-5 transition-colors",
+                badgeCount > 0 ? "text-yellow-600 group-hover:text-yellow-700" : "opacity-70"
+              )} />
+              感謝の手紙を書く
+              
+              {badgeCount > 0 && (
+                <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow-sm animate-bounce">
+                  {badgeCount}
+                </span>
+              )}
+            </Button>
+          )}
         </div>
 
         <div className="px-6 shrink-0">
@@ -196,7 +223,7 @@ export function SidebarContent({ onNavigate, badgeCount = 0 }: SidebarContentPro
           <h4 className="px-6 py-2 text-xs font-semibold text-slate-400 tracking-wider shrink-0">
             クラス・ゼミ
           </h4>
-          <ScrollArea className="h-full px-4 pb-4">
+          <ScrollArea className="flex-1 min-h-0 px-4 pb-4">
             <div className="space-y-1 pb-4">
               {classes.map((item, i) => (
                 <Button
@@ -220,10 +247,16 @@ export function SidebarContent({ onNavigate, badgeCount = 0 }: SidebarContentPro
   );
 }
 
-export function Sidebar({ className, userRole = "student", onNavigate, badgeCount }: SidebarProps) {
+export function Sidebar({ className, userRole = "student", onNavigate, badgeCount, userName, userAvatar }: SidebarProps) {
   return (
-    <div className={cn("w-[280px] bg-white border-r border-slate-200 h-full overflow-hidden", className)}>
-      <SidebarContent onNavigate={onNavigate} badgeCount={badgeCount} />
+    <div className={cn("w-[280px] bg-white border-r border-slate-200 h-screen sticky top-0 overflow-hidden", className)}>
+      <SidebarContent 
+        onNavigate={onNavigate} 
+        badgeCount={badgeCount}
+        userName={userName}
+        userAvatar={userAvatar}
+        userRole={userRole}
+      />
     </div>
   );
 }

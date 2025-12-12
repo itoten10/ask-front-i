@@ -1,3 +1,5 @@
+// ask-front-i/components/student/ThanksLetterView.tsx
+
 "use client";
 
 import { useState } from "react";

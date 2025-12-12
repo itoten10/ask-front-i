@@ -1,3 +1,5 @@
+// components/student/PostDetailModal.tsx
+
 "use client";
 
 import { X, User, ThumbsUp, MessageSquare, Eye } from "lucide-react";
@@ -5,10 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
-// ★ 追加: 共通モーダルをインポート
 import { FeatureInfoModal } from "@/components/student/FeatureInfoModal";
 
-// (Postインターフェース等の定義はそのまま)
+// (Postインターフェース等は既存のまま)
 interface Post {
   id: number;
   labName: string;
@@ -34,7 +35,6 @@ interface PostDetailModalProps {
 }
 
 export function PostDetailModal({ post, isOpen, onClose, isLiked, onLike }: PostDetailModalProps) {
-  // ★ 追加: コメントお知らせ用State
   const [showCommentInfo, setShowCommentInfo] = useState(false);
 
   if (!isOpen || !post) return null;
@@ -49,7 +49,6 @@ export function PostDetailModal({ post, isOpen, onClose, isLiked, onLike }: Post
 
   return (
     <>
-      {/* ★ 追加: コメント機能のお知らせモーダル */}
       <FeatureInfoModal
         open={showCommentInfo}
         onClose={() => setShowCommentInfo(false)}
@@ -63,15 +62,20 @@ export function PostDetailModal({ post, isOpen, onClose, isLiked, onLike }: Post
         }
       />
 
+      {/* 
+        修正: z-indexを 100 に変更
+        これにより、下部ナビゲーション(z-40)より確実に前面に表示され、
+        モーダル展開時のレイアウト崩れを防ぎます。
+      */}
       <div 
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 p-4"
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 p-4"
         onClick={onClose}
       >
         <div 
           className="bg-white w-full max-w-2xl max-h-[90vh] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 relative"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* ... (ヘッダー、コンテンツ部分は変更なし) ... */}
+          {/* 閉じるボタン */}
           <Button 
             variant="ghost" 
             size="icon" 
@@ -81,6 +85,7 @@ export function PostDetailModal({ post, isOpen, onClose, isLiked, onLike }: Post
             <X className="h-6 w-6 text-slate-500" />
           </Button>
 
+          {/* コンテンツエリア (既存のまま) */}
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 shrink-0">
             <div className="flex items-center gap-4">
               <Avatar className="h-14 w-14 border-2 border-white shadow-sm">
@@ -150,7 +155,6 @@ export function PostDetailModal({ post, isOpen, onClose, isLiked, onLike }: Post
                  <span className="text-xs font-normal">いいね</span>
                </Button>
 
-               {/* ★ 変更: コメントボタンクリック時にお知らせを表示 */}
                <Button 
                  variant="ghost" 
                  size="sm" 

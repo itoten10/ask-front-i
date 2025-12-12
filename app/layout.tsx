@@ -1,3 +1,5 @@
+// ask-front-i/app/layout.tsx
+
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
