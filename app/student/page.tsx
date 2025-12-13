@@ -53,6 +53,9 @@ export default function StudentPage() {
   // 感謝の手紙の残り枚数 (初期値3)
   const [thanksCount, setThanksCount] = useState(3);
 
+  // 投稿完了時にスクロールするためのRef
+  const allPostsRef = useRef<HTMLDivElement>(null);
+
   // ==========================================
   // Dummy Data
   // [Backend Integration] ここは将来的に API (/api/posts/featured 等) から取得する
@@ -139,8 +142,16 @@ export default function StudentPage() {
 
   // 投稿ハンドラ
   const handlePostSubmit = (data: any) => {
+    // TODO(BE): Implement Zod validation before sending
+    // const result = postSchema.safeParse(data);
+    // if (!result.success) { ... handle errors ... }
+
     // [Backend Integration] ここで API (POST /api/posts) を叩いてDBに保存する
-    // const response = await fetch('/api/posts', { method: 'POST', body: JSON.stringify(data) ... });
+    // const response = await fetch('/api/posts', { 
+    //   method: 'POST', 
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify(data) 
+    // });
     
     // MVP: フロントエンドのStateのみ更新（リロードで消える）
     const newPost: Post = {
@@ -148,6 +159,7 @@ export default function StudentPage() {
       labName: "メディアラボ", 
       authorName: data.isAnonymous ? "匿名" : "髙橋 由華",
       content: data.content,
+      // NOTE(SECURITY): Sanitize input content to prevent XSS if displaying as HTML
       isViewedByTeacher: false,
       isAnonymous: data.isAnonymous,
       isMyPost: true,
@@ -158,6 +170,14 @@ export default function StudentPage() {
       questionState: data.questionState
     };
     setPosts([newPost, ...posts]);
+
+    // ★追加: 投稿完了後に全投稿エリア（自分の投稿が反映される場所）まで自動スクロール
+    // ユーザーに「投稿できた感」を与える演出
+    setTimeout(() => {
+      if (allPostsRef.current) {
+        allPostsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100); // モーダルが閉じた後のタイミング調整
   };
 
   const handleLike = (postId: number) => {
@@ -264,7 +284,8 @@ export default function StudentPage() {
                 ))}
               </CarouselList>
 
-              <section className="w-full py-4">
+              {/* ★変更: 全投稿エリアへのスクロール用Refを追加 */}
+              <section className="w-full py-4" ref={allPostsRef}>
                 <div className="flex items-end justify-between mb-4 px-1">
                   <div className="flex items-center gap-3">
                     <span className="text-3xl"><Grip className="h-8 w-8 text-primary/80" /></span> 

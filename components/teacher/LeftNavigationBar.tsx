@@ -1,8 +1,9 @@
-// components/teacher/LeftNavigationBar.tsx
+// ask-front-i/components/teacher/LeftNavigationBar.tsx
 
 "use client";
 
-import { Home, MessageSquare, Mail, CheckSquare } from "lucide-react";
+// ★変更: Home -> BarChart3 に変更
+import { BarChart3, MessageSquare, Mail, CheckSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { FeatureInfoModal } from "@/components/student/FeatureInfoModal";
@@ -18,7 +19,8 @@ interface LeftNavigationBarProps {
 
 export function LeftNavigationBar({ activeView, onNavigate, className }: LeftNavigationBarProps) {
   const navItems = [
-    { id: "home" as const, icon: Home, label: "ホーム", enabled: true },
+    // ★変更: アイコンを BarChart3 に、ラベルを "進捗・評価" に変更（内部IDは "home" のまま）
+    { id: "home" as const, icon: BarChart3, label: "進捗・評価", enabled: true },
     { id: "message" as const, icon: MessageSquare, label: "メッセージ", enabled: true },
     // NOTE(MOCK): 以下はMVP Phase2で提供予定。クリックで説明モーダルを開く
     { id: "letter" as const, icon: Mail, label: "感謝の手紙", enabled: false },
