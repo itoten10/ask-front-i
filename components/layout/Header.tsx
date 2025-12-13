@@ -1,15 +1,13 @@
+// components/layout/Header.tsx
+
 "use client";
 
-import { Search, Menu, Bell } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Menu, Bell, Search, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SidebarContent } from "@/components/layout/Sidebar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState } from "react";
 
 interface HeaderProps {
@@ -18,72 +16,85 @@ interface HeaderProps {
   userName?: string;
   userAvatar?: string;
   userRole?: "student" | "teacher";
+  activeView?: string;
+  // ★変更: フィルター項目の型を更新
+  teacherFilters?: {
+    class: string;
+    phase: string;
+    questionChange: string;
+    order: string;
+  };
+  onFilterChange?: (key: string, value: string) => void;
 }
 
-export function Header({ onNavigate, badgeCount = 0, userName, userAvatar, userRole = "student" }: HeaderProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const handleMobileNavigate = (view: "home" | "thanks") => {
-    if (onNavigate) {
-      onNavigate(view);
-    }
-    setIsOpen(false);
-  };
+export function Header({ 
+  onNavigate, 
+  badgeCount = 0, 
+  userName, 
+  userAvatar, 
+  userRole = "student",
+  activeView,
+  teacherFilters,
+  onFilterChange
+}: HeaderProps) {
+  const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-primary text-primary-foreground shadow-md h-16">
-      <div className="container mx-auto flex h-full items-center px-4 justify-between">
-        
-        <div className="flex items-center gap-4">
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden text-primary-foreground hover:bg-white/10">
-                <Menu className="h-6 w-6" />
-                <span className="sr-only">メニューを開く</span>
-                {badgeCount > 0 && (
-                  <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-red-500 border border-primary ring-1 ring-white" />
-                )}
-              </Button>
-            </SheetTrigger>
-            
-            <SheetContent side="left" className="p-0 w-[280px]">
-              <SheetTitle className="sr-only">ナビゲーションメニュー</SheetTitle>
-              <SidebarContent 
-                onNavigate={handleMobileNavigate} 
-                badgeCount={badgeCount}
-                userName={userName}
-                userAvatar={userAvatar}
-                userRole={userRole}
-              />
-            </SheetContent>
-          </Sheet>
+    <header className="h-16 border-b border-slate-200 bg-primary text-white flex items-center px-4 justify-between shrink-0 z-30 sticky top-0 shadow-sm">
+      <div className="flex items-center gap-3">
+        {/* モバイル用ハンバーガーメニュー */}
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="md:hidden text-white hover:bg-white/10 -ml-2">
+              <Menu className="h-6 w-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-[280px]">
+            {/* 
+              ★修正: アクセシビリティエラー対応
+              SheetTitleを配置し、sr-onlyクラスで視覚的には隠すことで解決します
+            */}
+            <SheetHeader>
+              <SheetTitle className="sr-only">メニュー</SheetTitle>
+            </SheetHeader>
 
-          <div className="hidden md:flex flex-col leading-tight">
-            <span className="text-sm font-bold opacity-90">下妻第一高校</span>
-            <span className="text-xl font-black tracking-widest">カタリバ</span>
-          </div>
-          <div className="md:hidden flex flex-col leading-tight">
-             <span className="text-xs font-bold opacity-90">下妻一高</span>
-             <span className="text-lg font-black tracking-widest">カタリバ</span>
-          </div>
-        </div>
-
-        <div className="flex-1 max-w-xl mx-4">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-white/70" />
-            <Input
-              type="search"
-              placeholder="検索"
-              className="w-full bg-white/20 border-white/30 text-white placeholder:text-white/70 pl-9 focus-visible:ring-white/50"
+            <SidebarContent 
+              onNavigate={(view) => {
+                if (onNavigate) onNavigate(view);
+                setOpen(false);
+              }}
+              badgeCount={badgeCount}
+              userName={userName}
+              userAvatar={userAvatar}
+              userRole={userRole}
+              activeView={activeView}
+              teacherFilters={teacherFilters}
+              onFilterChange={onFilterChange}
             />
-          </div>
-        </div>
+          </SheetContent>
+        </Sheet>
 
-        <div className="flex items-center gap-2">
-           <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/10">
-             <Bell className="h-5 w-5" />
-           </Button>
+        <div className="flex flex-col">
+          <h2 className="text-[10px] font-medium opacity-80 leading-tight">下妻第一高校</h2>
+          <h1 className="text-xl font-bold leading-tight">カタリバ</h1>
         </div>
+      </div>
+
+      <div className="flex-1 max-w-md mx-4 hidden md:block">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
+          <Input 
+            placeholder="検索" 
+            className="pl-9 bg-white/10 border-none text-white placeholder:text-white/60 h-9 focus-visible:ring-1 focus-visible:ring-white/30" 
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 relative">
+          <Bell className="h-5 w-5" />
+          <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border border-primary" />
+        </Button>
       </div>
     </header>
   );

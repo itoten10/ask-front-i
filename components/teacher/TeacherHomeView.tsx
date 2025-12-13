@@ -1,17 +1,15 @@
-// ask-front-i/components/teacher/TeacherHomeView.tsx
+// components/teacher/TeacherHomeView.tsx
 
 "use client";
 
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Filter, Download } from "lucide-react";
+import { FeatureInfoModal } from "@/components/student/FeatureInfoModal";
 import { useState } from "react";
 
-// BACKEND_INTEGRATION: 将来的にはAPIから取得
-// API_CONTRACT: GET /api/teacher/students/progress
 interface StudentProgress {
   id: string;
   name: string;
@@ -23,7 +21,6 @@ interface StudentProgress {
   signalColor: "green" | "yellow" | "red";
 }
 
-// API_CONTRACT: GET /api/teacher/students/non-cognitive
 interface NonCognitiveData {
   id: string;
   name: string;
@@ -34,13 +31,22 @@ interface NonCognitiveData {
   communication: "green" | "yellow" | "red";
 }
 
-export function TeacherHomeView() {
-  const [selectedClass, setSelectedClass] = useState("all");
-  const [selectedTeam, setSelectedTeam] = useState("all");
-  const [selectedPhase, setSelectedPhase] = useState("all");
-  const [postCountOrder, setPostCountOrder] = useState("all");
+// ★追加: Propsの定義
+interface TeacherHomeViewProps {
+  filters?: {
+    class: string;
+    phase: string;
+    questionChange: string;
+    order: string;
+  };
+}
+
+export function TeacherHomeView({ filters }: TeacherHomeViewProps) {
+  // モバイル用フィルター警告モーダル
+  const [showMobileFilterInfo, setShowMobileFilterInfo] = useState(false);
 
   // NOTE(MOCK): MVP用のダミーデータ
+  // BACKEND_INTEGRATION: props.filters を使ってAPIリクエストパラメータを変えるか、クライアント側でフィルタリングする
   const progressData: StudentProgress[] = [
     { id: "S001", name: "江藤 泰平", interventionFlag: true, phase: "課題設定", questionChangeCount: 0, postCount: 12, lastPostDate: "11/29", signalColor: "green" },
     { id: "S002", name: "由井 理月", interventionFlag: false, phase: "情報収集", questionChangeCount: 0, postCount: 8, lastPostDate: "11/15", signalColor: "green" },
@@ -70,25 +76,39 @@ export function TeacherHomeView() {
 
   return (
     <div className="space-y-6">
+      {/* モバイル用フィルターお知らせ */}
+      <FeatureInfoModal
+        open={showMobileFilterInfo}
+        onClose={() => setShowMobileFilterInfo(false)}
+        title="フィルター機能"
+        description="モバイル版での詳細な絞り込み機能は、フェーズ2以降で最適化して実装予定です。現在はPC版をご利用ください。"
+      />
+
       {/* ヘッダー */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">評価基準詳細</h1>
           <p className="text-slate-500 mt-1">2年4組 / メディアラボ</p>
         </div>
         <div className="flex gap-2">
+          {/* モバイルのみ表示する簡易フィルターボタン */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="lg:hidden"
+            onClick={() => setShowMobileFilterInfo(true)}
+          >
+            <Filter className="mr-2 h-4 w-4" /> 絞り込み
+          </Button>
           <Button variant="outline" size="sm">
             <Download className="mr-2 h-4 w-4" /> CSV出力
-          </Button>
-          <Button size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
-            <Filter className="mr-2 h-4 w-4" /> すべての選択を解除
           </Button>
         </div>
       </div>
 
       {/* タブ切り替え */}
       <Tabs defaultValue="progress" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
           <TabsTrigger value="progress" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
             探究学習 進捗状況
           </TabsTrigger>
@@ -97,84 +117,22 @@ export function TeacherHomeView() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="progress" className="mt-6 space-y-6">
-          {/* フィルターエリア - 左サイドバー風 */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* 左：フィルターカード */}
-            <Card className="lg:col-span-3 p-6 bg-purple-50 border-purple-200 space-y-6">
-              <div>
-                <p className="text-sm font-bold text-slate-700 mb-3">ゼミ・クラス</p>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">すべて</SelectItem>
-                    <SelectItem value="media">メディアラボ</SelectItem>
-                    <SelectItem value="science">サイエンスラボ</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <p className="text-sm font-bold text-slate-700 mb-3">チーム</p>
-                <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">すべて</SelectItem>
-                    <SelectItem value="team1">チーム1</SelectItem>
-                    <SelectItem value="team2">チーム2</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <p className="text-sm font-bold text-slate-700 mb-3">直近の状況</p>
-                <Select value={selectedPhase} onValueChange={setSelectedPhase}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">すべて</SelectItem>
-                    <SelectItem value="setting">課題設定</SelectItem>
-                    <SelectItem value="gathering">情報収集</SelectItem>
-                    <SelectItem value="analysis">整理・分析</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <p className="text-sm font-bold text-slate-700 mb-3">投稿数</p>
-                <Select value={postCountOrder} onValueChange={setPostCountOrder}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">すべて</SelectItem>
-                    <SelectItem value="desc">多い順</SelectItem>
-                    <SelectItem value="asc">少ない順</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </Card>
-
-            {/* 右：テーブル */}
-            <Card className="lg:col-span-9 border shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-gradient-to-r from-teal-700 to-teal-800">
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="font-bold text-white">氏名</TableHead>
-                      <TableHead className="text-center font-bold text-white">介入フラグ</TableHead>
-                      <TableHead className="text-center font-bold text-white">フェーズ</TableHead>
-                      <TableHead className="text-center font-bold text-white">課題変更回数</TableHead>
-                      <TableHead className="text-center font-bold text-white">投稿数</TableHead>
-                      <TableHead className="text-center font-bold text-white">最終投稿日</TableHead>
-                      <TableHead className="text-center font-bold text-white">非認知知能力<br/>発揮状況</TableHead>
-                    </TableRow>
-                  </TableHeader>
+        <TabsContent value="progress" className="space-y-4">
+          {/* テーブルのみ表示（左サイドバーのカードを削除） */}
+          <Card className="border shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-gradient-to-r from-teal-700 to-teal-800">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="font-bold text-white min-w-[120px]">氏名</TableHead>
+                    <TableHead className="text-center font-bold text-white min-w-[80px]">介入フラグ</TableHead>
+                    <TableHead className="text-center font-bold text-white min-w-[100px]">フェーズ</TableHead>
+                    <TableHead className="text-center font-bold text-white min-w-[100px]">課題変更回数</TableHead>
+                    <TableHead className="text-center font-bold text-white min-w-[80px]">投稿数</TableHead>
+                    <TableHead className="text-center font-bold text-white min-w-[100px]">最終投稿日</TableHead>
+                    <TableHead className="text-center font-bold text-white min-w-[120px]">非認知知能力<br/>発揮状況</TableHead>
+                  </TableRow>
+                </TableHeader>
                 <TableBody>
                   {progressData.map((student) => (
                     <TableRow key={student.id} className="hover:bg-purple-50/30 cursor-pointer transition-colors">
@@ -198,97 +156,39 @@ export function TeacherHomeView() {
                   ))}
                 </TableBody>
               </Table>
-              </div>
-            </Card>
-          </div>
+            </div>
+          </Card>
         </TabsContent>
 
-        {/* 非認知知能データ */}
-        <TabsContent value="non-cognitive" className="mt-6 space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* 左：フィルターカード */}
-            <Card className="lg:col-span-3 p-6 bg-purple-50 border-purple-200 space-y-6">
-              <div>
-                <p className="text-sm font-bold text-slate-700 mb-3">ゼミ・クラス</p>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">すべて</SelectItem>
-                    <SelectItem value="media">メディアラボ</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <p className="text-sm font-bold text-slate-700 mb-3">チーム</p>
-                <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">すべて</SelectItem>
-                    <SelectItem value="team1">チーム1</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <p className="text-sm font-bold text-slate-700 mb-3">直近の状況</p>
-                <Select value={selectedPhase} onValueChange={setSelectedPhase}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">すべて</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <p className="text-sm font-bold text-slate-700 mb-3">投稿数</p>
-                <Select value={postCountOrder} onValueChange={setPostCountOrder}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">すべて</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </Card>
-
-            {/* 右：テーブル */}
-            <Card className="lg:col-span-9 border shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-gradient-to-r from-teal-700 to-teal-800">
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="font-bold text-white">氏名</TableHead>
-                      <TableHead className="text-center font-bold text-white">総合</TableHead>
-                      <TableHead className="text-center font-bold text-white">課題設定力</TableHead>
-                      <TableHead className="text-center font-bold text-white">情報収集力</TableHead>
-                      <TableHead className="text-center font-bold text-white">巻き込み力</TableHead>
-                      <TableHead className="text-center font-bold text-white">対話する力</TableHead>
+        <TabsContent value="non-cognitive" className="space-y-4">
+          <Card className="border shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-gradient-to-r from-teal-700 to-teal-800">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="font-bold text-white min-w-[120px]">氏名</TableHead>
+                    <TableHead className="text-center font-bold text-white min-w-[80px]">総合</TableHead>
+                    <TableHead className="text-center font-bold text-white min-w-[100px]">課題設定力</TableHead>
+                    <TableHead className="text-center font-bold text-white min-w-[100px]">情報収集力</TableHead>
+                    <TableHead className="text-center font-bold text-white min-w-[100px]">巻き込み力</TableHead>
+                    <TableHead className="text-center font-bold text-white min-w-[100px]">対話する力</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {nonCognitiveData.map((student) => (
+                    <TableRow key={student.id} className="hover:bg-purple-50/30 cursor-pointer transition-colors">
+                      <TableCell className="font-medium">{student.name}</TableCell>
+                      <TableCell className="text-center">{getSignalDot(student.overall)}</TableCell>
+                      <TableCell className="text-center">{getSignalDot(student.problemSetting)}</TableCell>
+                      <TableCell className="text-center">{getSignalDot(student.infoGathering)}</TableCell>
+                      <TableCell className="text-center">{getSignalDot(student.commitment)}</TableCell>
+                      <TableCell className="text-center">{getSignalDot(student.communication)}</TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {nonCognitiveData.map((student) => (
-                      <TableRow key={student.id} className="hover:bg-purple-50/30 cursor-pointer transition-colors">
-                        <TableCell className="font-medium">{student.name}</TableCell>
-                        <TableCell className="text-center">{getSignalDot(student.overall)}</TableCell>
-                        <TableCell className="text-center">{getSignalDot(student.problemSetting)}</TableCell>
-                        <TableCell className="text-center">{getSignalDot(student.infoGathering)}</TableCell>
-                        <TableCell className="text-center">{getSignalDot(student.commitment)}</TableCell>
-                        <TableCell className="text-center">{getSignalDot(student.communication)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
