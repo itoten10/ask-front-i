@@ -245,7 +245,7 @@ export default function StudentPage() {
         >
           {currentView === "home" ? (
             // Home (Feed) View
-            <div className="w-full max-w-[1600px] mx-auto space-y-8 pb-20 animate-in fade-in slide-in-from-left-4 duration-500"> 
+            <div className="w-full max-w-[1600px] mx-auto space-y-1 pb-20 animate-in fade-in slide-in-from-left-4 duration-500"> 
               <PostForm onSubmit={handlePostSubmit} />
 
               <CarouselList 
