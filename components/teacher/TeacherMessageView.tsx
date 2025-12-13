@@ -141,12 +141,6 @@ export function TeacherMessageView() {
 
   return (
     <div className="space-y-1 pb-24 lg:pb-12">
-      {/* ページタイトル */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">メッセージ</h1>
-        <p className="text-slate-500 mt-1">クラス全体の投稿を確認できます</p>
-      </div>
-
       {/* 投稿詳細モーダル */}
       <PostDetailModal
         post={selectedPost}
