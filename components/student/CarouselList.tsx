@@ -14,6 +14,8 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { cn } from "@/lib/utils";
+// ★追加: オートプレイ用プラグイン
+import Autoplay from "embla-carousel-autoplay";
 
 interface CarouselListProps {
   title: string;
@@ -33,6 +35,14 @@ export function CarouselList({
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [count, setCount] = React.useState(0);
+
+  // ★追加: オートプレイの設定
+  // delay: 3000ms (3秒) 間隔
+  // stopOnMouseEnter: true (マウスホバーで停止)
+  // stopOnInteraction: false (操作後も自動再生を続ける場合はfalse、止めるならtrue)
+  const plugin = React.useRef(
+    Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })
+  );
 
   React.useEffect(() => {
     if (!api) return;
@@ -65,12 +75,14 @@ export function CarouselList({
 
       <Carousel
         setApi={setApi}
+        plugins={[plugin.current]} // ★追加: プラグインを適用
         opts={{
           align: "start",
           loop: true,
         }}
         className="w-full relative group"
-        // ★修正: 余計な px-12 は削除。これで下のグリッドと幅が揃います。
+        onMouseEnter={plugin.current.stop} // マウスが乗ったら停止
+        onMouseLeave={plugin.current.reset} // 離れたら再開
       >
         <CarouselContent className="-ml-4">
           {React.Children.map(children, (child) => (
@@ -82,13 +94,7 @@ export function CarouselList({
           ))}
         </CarouselContent>
         
-        {/* 
-           ★修正ポイント: ボタンを内側に配置 (Overlay)
-           - left-2 / right-2 : カードの内側端に配置
-           - z-10 : カードより前面に表示
-           - bg-white/90 : 背景を少し透過させて圧迫感を減らす
-           - shadow-md : 浮かせて視認性を確保
-        */}
+        {/* ボタン (Overlay配置) */}
         <CarouselPrevious 
           className="hidden md:flex left-2 w-10 h-10 border border-slate-200 bg-white/90 text-slate-700 hover:bg-primary hover:text-white hover:border-primary shadow-md transition-all z-10" 
         />
