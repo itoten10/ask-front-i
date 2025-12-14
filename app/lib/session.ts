@@ -1,11 +1,11 @@
 "use client";
 
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch } from "./api-client";
 import {
   clearAccessToken,
   getAccessToken,
   setAccessToken,
-} from "@/lib/auth/client";
+} from "./auth-client";
 
 type RefreshResponse = {
   access_token: string;

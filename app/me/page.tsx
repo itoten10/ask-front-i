@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { apiFetch } from "@/lib/api/client";
-import { clearAccessToken } from "@/lib/auth/client";
+import { clearAccessToken, setAccessToken } from "@/lib/auth/client";
 import { fetchMe, MeUser } from "@/lib/session";
 
 const roleLabel: Record<MeUser["role"], string> = {
@@ -25,6 +25,40 @@ export default function MePage() {
       setLoading(true);
       setError(null);
       try {
+        // NextAuthのセッションからaccess_tokenを取得してexchange-tokenを試みる
+        try {
+          const sessionResponse = await fetch("/api/auth/session");
+          if (sessionResponse.ok) {
+            const session = await sessionResponse.json();
+            const accessToken = (session as any)?.access_token;
+
+            if (accessToken && !localStorage.getItem("access_token")) {
+              console.log("Found access_token in session, storing and exchanging for refresh_token");
+              setAccessToken(accessToken);
+
+              // exchange-tokenを呼び出してrefresh_tokenクッキーを設定
+              const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT || "http://localhost:8000";
+              const exchangeResponse = await fetch(`${API_ENDPOINT}/api/auth/exchange-token`, {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${accessToken}`,
+                },
+                credentials: "include",
+              });
+
+              if (exchangeResponse.ok) {
+                const exchangeData = await exchangeResponse.json();
+                if (exchangeData.access_token) {
+                  setAccessToken(exchangeData.access_token);
+                }
+                console.log("Successfully set refresh_token cookie");
+              }
+            }
+          }
+        } catch (sessionErr) {
+          console.error("Session check error:", sessionErr);
+        }
+
         const me = await fetchMe();
         setUser(me);
       } catch (err) {
@@ -69,6 +103,18 @@ export default function MePage() {
                 管理者ページへ
               </Link>
             )}
+            <Link
+              href="/posts"
+              className="rounded-md border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              投稿一覧へ
+            </Link>
+            <Link
+              href="/thanks-letters"
+              className="rounded-md border border-purple-600 bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
+            >
+              感謝の手紙へ
+            </Link>
             <button
               type="button"
               onClick={handleLogout}

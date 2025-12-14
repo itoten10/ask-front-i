@@ -66,6 +66,7 @@ export const authOptions: NextAuthOptions = {
             headers: {
               "Content-Type": "application/json",
             },
+            credentials: 'include', // クッキーを含める
             body: JSON.stringify({
               id_token: account.id_token,
               email: user.email || "",
@@ -77,11 +78,18 @@ export const authOptions: NextAuthOptions = {
           }
 
           const data = await response.json();
-          
+
           // データをuserオブジェクトに保存（jwtコールバックで使用）
           (user as any).temp_token = data.temp_token;
           (user as any).is_2fa_enabled = data.is_2fa_enabled;
           (user as any).user_id = data.user_id;
+
+          // 2FA無効の場合は直接access_tokenを保存
+          if (!data.is_2fa_enabled && data.access_token) {
+            (user as any).access_token = data.access_token;
+            (user as any).token_type = data.token_type;
+            (user as any).expires_in = data.expires_in;
+          }
 
           return true;
         } catch (error) {
@@ -93,19 +101,37 @@ export const authOptions: NextAuthOptions = {
     },
     async jwt({ token, user, account }) {
       // 初回ログイン時、userオブジェクトからデータを取得してトークンに保存
-      if (user && (user as any).temp_token) {
-        token.temp_token = (user as any).temp_token;
-        token.is_2fa_enabled = (user as any).is_2fa_enabled;
-        token.user_id = (user as any).user_id;
+      if (user) {
+        if ((user as any).temp_token) {
+          token.temp_token = (user as any).temp_token;
+        }
+        if ((user as any).is_2fa_enabled !== undefined) {
+          token.is_2fa_enabled = (user as any).is_2fa_enabled;
+        }
+        if ((user as any).user_id) {
+          token.user_id = (user as any).user_id;
+        }
+        // 2FA無効の場合、access_tokenを保存
+        if ((user as any).access_token) {
+          token.access_token = (user as any).access_token;
+          token.token_type = (user as any).token_type;
+          token.expires_in = (user as any).expires_in;
+        }
       }
       return token;
     },
     async session({ session, token }) {
-      // セッションに2FA関連データを追加
+      // セッションに2FA関連データまたはaccess_tokenを追加
       if (token.temp_token) {
         (session as any).temp_token = token.temp_token;
         (session as any).is_2fa_enabled = token.is_2fa_enabled;
         (session as any).user_id = token.user_id;
+      }
+      // 2FA無効の場合、access_tokenをセッションに追加
+      if (token.access_token) {
+        (session as any).access_token = token.access_token;
+        (session as any).token_type = token.token_type;
+        (session as any).expires_in = token.expires_in;
       }
       return session;
     },

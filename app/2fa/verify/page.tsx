@@ -64,11 +64,33 @@ export default function TwoFAVerifyPage() {
 
       // アクセストークンを保存
       setAccessToken(result.access_token);
-      
+
+      // exchange-tokenを呼び出してrefresh_tokenクッキーを設定
+      try {
+        const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT || "http://localhost:8000";
+        const exchangeResponse = await fetch(`${API_ENDPOINT}/api/auth/exchange-token`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${result.access_token}`,
+          },
+          credentials: "include",
+        });
+
+        if (exchangeResponse.ok) {
+          const exchangeData = await exchangeResponse.json();
+          if (exchangeData.access_token) {
+            setAccessToken(exchangeData.access_token);
+          }
+          console.log("Successfully set refresh_token cookie");
+        }
+      } catch (exchangeErr) {
+        console.error("Token exchange error:", exchangeErr);
+      }
+
       // 一時トークンを削除
       sessionStorage.removeItem("temp_token");
       sessionStorage.removeItem("is_2fa_enabled");
-      
+
       // ダッシュボードへリダイレクト
       router.push("/me");
     } catch (err) {

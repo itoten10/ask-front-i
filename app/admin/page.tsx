@@ -44,12 +44,21 @@ export default function AdminHomePage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-3xl px-6 py-16">
+        <div className="mb-4">
+          <button
+            onClick={() => router.push("/me")}
+            className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900"
+          >
+            ← マイページに戻る
+          </button>
+        </div>
+
         <h1 className="text-2xl font-semibold text-slate-900">管理トップ</h1>
         <p className="mt-1 text-sm text-slate-600">
           ユーザー管理などの管理者機能にアクセスできます。
         </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Link
             href="/admin/users"
             className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
@@ -57,6 +66,26 @@ export default function AdminHomePage() {
             <h2 className="text-lg font-semibold text-slate-900">ユーザー管理</h2>
             <p className="mt-2 text-sm text-slate-600">
               ユーザーの一覧、登録、削除、CSV一括操作を行います。
+            </p>
+          </Link>
+
+          <Link
+            href="/admin/database"
+            className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <h2 className="text-lg font-semibold text-slate-900">データベース管理</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              各テーブルのデータを閲覧できます。
+            </p>
+          </Link>
+
+          <Link
+            href="/admin/dashboard"
+            className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <h2 className="text-lg font-semibold text-slate-900">ダッシュボード</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              探求学習の進捗状況と非認知能力データを可視化します。
             </p>
           </Link>
         </div>

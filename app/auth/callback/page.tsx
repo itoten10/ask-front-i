@@ -15,12 +15,48 @@ export default function AuthCallbackPage() {
           const session = await sessionResponse.json();
           const tempToken = (session as any)?.temp_token;
           const is2FAEnabled = (session as any)?.is_2fa_enabled;
-          
+          const accessToken = (session as any)?.access_token;
+
           // デバッグ: セッション情報を確認
           console.log("Auth callback - session:", session);
           console.log("Auth callback - tempToken:", tempToken);
           console.log("Auth callback - is2FAEnabled:", is2FAEnabled, "Type:", typeof is2FAEnabled);
-          
+          console.log("Auth callback - accessToken:", accessToken ? "present" : "none");
+
+          // 2FA無効でaccess_tokenが返された場合、直接トークンを保存してログイン完了
+          if (accessToken && is2FAEnabled === false) {
+            console.log("2FA disabled, storing access token and setting up refresh cookie");
+            localStorage.setItem("access_token", accessToken);
+
+            // バックエンドの/auth/exchange-tokenを呼び出してrefresh_tokenクッキーを設定
+            try {
+              const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT || "http://localhost:8000";
+              const exchangeResponse = await fetch(`${API_ENDPOINT}/api/auth/exchange-token`, {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${accessToken}`,
+                },
+                credentials: "include", // クッキーを含める
+              });
+
+              if (exchangeResponse.ok) {
+                const exchangeData = await exchangeResponse.json();
+                // 新しいaccess_tokenがあれば更新
+                if (exchangeData.access_token) {
+                  localStorage.setItem("access_token", exchangeData.access_token);
+                }
+                console.log("Refresh token cookie set successfully");
+              } else {
+                console.error("Failed to exchange token:", await exchangeResponse.text());
+              }
+            } catch (err) {
+              console.error("Token exchange error:", err);
+            }
+
+            router.replace("/me");
+            return;
+          }
+
           if (tempToken) {
             // sessionStorageにも保存（2FAページで使用するため）
             sessionStorage.setItem("temp_token", tempToken);
