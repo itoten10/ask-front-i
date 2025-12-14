@@ -2,12 +2,13 @@
 
 "use client";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Filter, Download, Flag, Info } from "lucide-react";
+import { Filter, Download, Flag, Info, ChevronLeft, ChevronRight } from "lucide-react";
 import { FeatureInfoModal } from "@/components/student/FeatureInfoModal";
-import { useState } from "react";
+import { EvaluationCriteriaModal } from "@/components/teacher/EvaluationCriteriaModal";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
 // ==========================================
@@ -16,30 +17,30 @@ import { cn } from "@/lib/utils";
 
 // BACKEND_INTEGRATION: student_progress_snapshots テーブル + users テーブルの結合データを想定
 // API_CONTRACT: GET /api/v1/teacher/dashboard/progress?period_id=1
-// NOTE: period_id は MVPでは 1 固定を想定
 interface StudentProgressData {
   user_id: number;                // users.id
   name: string;                   // users.full_name
-  seminar: string;                // users.class_or_seminar (または別途紐づけ)
+  seminar: string;                // users.class_or_seminar
   intervention_flag: boolean;     // student_progress_snapshots.intervention_flag
   current_phase: string;          // student_progress_snapshots.current_phase_label
   question_change_count: number;  // student_progress_snapshots.question_change_count
-  post_count: number;             // student_progress_snapshots.total_action_count (行動量)
-  last_posted_at: string;         // student_progress_snapshots.last_posted_at (MM/DD形式に変換済)
+  post_count: number;             // student_progress_snapshots.total_action_count
+  last_posted_at: string;         // student_progress_snapshots.last_posted_at
   overall_signal: "green" | "yellow" | "red"; // student_progress_snapshots.overall_signal_color
 }
 
 // NOTE(DB): non_cog_scores テーブルのデータを想定
-// API_CONTRACT: GET /api/v1/teacher/dashboard/non-cognitive?period_id=1
 interface NonCognitiveData {
-  user_id: number;                // users.id
-  name: string;                   // users.full_name
-  overall: "green" | "yellow" | "red";          // non_cog_scores (ability_id=OVERALL).signal_color
-  // 以下、各能力のスコアバンド色 (non_cog_scores テーブルから ability_id ごとに取得して展開)
-  p1_setting: "green" | "yellow" | "red";       // ability_id=1 (課題設定)
-  p2_gathering: "green" | "yellow" | "red";     // ability_id=2 (情報収集)
-  p3_involving: "green" | "yellow" | "red";     // ability_id=3 (巻き込み)
-  p4_communication: "green" | "yellow" | "red"; // ability_id=4 (対話)
+  user_id: number;
+  name: string;
+  overall: "green" | "yellow" | "red";
+  p1_setting: "green" | "yellow" | "red";
+  p2_gathering: "green" | "yellow" | "red";
+  p3_involving: "green" | "yellow" | "red";
+  p4_communication: "green" | "yellow" | "red";
+  p5_humility: "green" | "yellow" | "red";
+  p6_execution: "green" | "yellow" | "red";
+  p7_completion: "green" | "yellow" | "red";
 }
 
 interface TeacherHomeViewProps {
@@ -49,66 +50,225 @@ interface TeacherHomeViewProps {
     questionChange: string;
     order: string;
   };
+  onFilterReset?: () => void;
 }
 
-export function TeacherHomeView({ filters }: TeacherHomeViewProps) {
-  const [showMobileFilterInfo, setShowMobileFilterInfo] = useState(false);
-  const [showLogicInfo, setShowLogicInfo] = useState(false); // 計算ロジックモーダル用
+const downloadCSV = (data: any[], fileName: string) => {
+  const csvContent = [
+    Object.keys(data[0]).join(","),
+    ...data.map(row => Object.values(row).map(v => `"${v}"`).join(","))
+  ].join("\n");
+  
+  const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", fileName);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
-  // ゼミリスト (Mock用)
+export function TeacherHomeView({ filters, onFilterReset }: TeacherHomeViewProps) {
+  const [showMobileFilterInfo, setShowMobileFilterInfo] = useState(false);
+  const [showLogicInfo, setShowLogicInfo] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
   const seminarList = [
     "メディアラボ", "サイエンスラボ", "国際ゼミ", "工学ラボ", "社会科学ゼミ",
     "フィジカルラボ", "文化教育ゼミ", "地域ビジネスゼミ", "１－１ 地域共創", "１－２ 地域共創"
   ];
 
-  // ==========================================
-  // NOTE(MOCK): ダミーデータ生成 (20名分)
-  // ==========================================
+  // NOTE(MOCK): 2025年版ダミーデータ (60名)
   const rawData = [
-    { name: "江藤 泰平", flag: true, phase: "課題設定", change: 0, post: 12, date: "11/29", signal: "green" },
-    { name: "由井 理月", flag: false, phase: "情報収集", change: 0, post: 8, date: "11/15", signal: "green" },
-    { name: "伊藤 誠人", flag: true, phase: "課題設定", change: 1, post: 9, date: "11/06", signal: "yellow" },
-    { name: "髙橋 由華", flag: false, phase: "情報収集", change: 1, post: 10, date: "11/14", signal: "red" },
-    // 追加16名
-    { name: "佐藤 健太", flag: false, phase: "情報収集", change: 1, post: 3, date: "11/03", signal: "red" },
-    { name: "鈴木 花子", flag: true, phase: "整理・分析", change: 2, post: 5, date: "10/29", signal: "yellow" },
-    { name: "田中 太郎", flag: false, phase: "まとめ・表現", change: 3, post: 9, date: "10/29", signal: "green" },
-    { name: "山田 次郎", flag: true, phase: "整理・分析", change: 3, post: 6, date: "10/20", signal: "green" },
-    { name: "木村 拓哉", flag: false, phase: "実験・調査", change: 0, post: 15, date: "11/30", signal: "green" },
-    { name: "斎藤 飛鳥", flag: false, phase: "発表準備", change: 4, post: 22, date: "11/30", signal: "green" },
-    { name: "西野 七瀬", flag: true, phase: "テーマ設定", change: 0, post: 1, date: "10/01", signal: "red" },
-    { name: "白石 麻衣", flag: false, phase: "情報収集", change: 1, post: 4, date: "11/25", signal: "yellow" },
-    { name: "生田 絵梨花", flag: false, phase: "整理・分析", change: 2, post: 11, date: "11/28", signal: "green" },
-    { name: "秋元 真夏", flag: true, phase: "課題設定", change: 5, post: 8, date: "11/10", signal: "yellow" },
-    { name: "山下 美月", flag: false, phase: "実験・調査", change: 2, post: 14, date: "11/29", signal: "green" },
-    { name: "梅澤 美波", flag: false, phase: "まとめ・表現", change: 3, post: 18, date: "11/30", signal: "green" },
-    { name: "久保 史緒里", flag: true, phase: "情報収集", change: 0, post: 2, date: "10/15", signal: "red" },
-    { name: "与田 祐希", flag: false, phase: "整理・分析", change: 1, post: 7, date: "11/20", signal: "yellow" },
-    { name: "遠藤 さくら", flag: false, phase: "実験・調査", change: 2, post: 10, date: "11/27", signal: "green" },
-    { name: "賀喜 遥香", flag: false, phase: "発表準備", change: 3, post: 20, date: "11/30", signal: "green" },
+    { name: "髙橋 由華", phase: "情報収集", change: 0, post: 8, date: "11/25", signal: "red" },
+    { name: "江藤 泰平", phase: "課題設定", change: 2, post: 15, date: "12/17", signal: "green" },
+    { name: "由井 理月", phase: "情報収集", change: 0, post: 12, date: "12/15", signal: "green" },
+    { name: "伊藤 誠人", phase: "課題設定", change: 1, post: 6, date: "12/10", signal: "yellow" },
+    { name: "佐藤 健太", phase: "情報収集", change: 1, post: 3, date: "11/03", signal: "red" },
+    { name: "鈴木 花子", phase: "整理・分析", change: 2, post: 11, date: "12/12", signal: "yellow" },
+    { name: "田中 太郎", phase: "まとめ・表現", change: 3, post: 20, date: "12/18", signal: "green" },
+    { name: "山田 次郎", phase: "整理・分析", change: 3, post: 10, date: "12/16", signal: "green" },
+    { name: "木村 拓哉", phase: "実験・調査", change: 0, post: 15, date: "11/30", signal: "yellow" },
+    { name: "斎藤 飛鳥", phase: "発表準備", change: 4, post: 22, date: "12/18", signal: "green" },
+    { name: "西野 七瀬", phase: "テーマ設定", change: 0, post: 1, date: "10/01", signal: "red" },
+    { name: "白石 麻衣", phase: "情報収集", change: 1, post: 4, date: "11/25", signal: "yellow" },
+    { name: "生田 絵梨花", phase: "整理・分析", change: 2, post: 11, date: "12/15", signal: "green" },
+    { name: "秋元 真夏", phase: "課題設定", change: 5, post: 8, date: "12/10", signal: "yellow" },
+    { name: "山下 美月", phase: "実験・調査", change: 2, post: 14, date: "12/16", signal: "green" },
+    { name: "梅澤 美波", phase: "まとめ・表現", change: 3, post: 18, date: "12/17", signal: "green" },
+    { name: "久保 史緒里", phase: "情報収集", change: 0, post: 2, date: "10/15", signal: "red" },
+    { name: "与田 祐希", phase: "整理・分析", change: 1, post: 7, date: "12/05", signal: "yellow" },
+    { name: "遠藤 さくら", phase: "実験・調査", change: 2, post: 10, date: "12/16", signal: "green" },
+    { name: "賀喜 遥香", phase: "発表準備", change: 3, post: 20, date: "12/18", signal: "green" },
+    { name: "井上 和", phase: "テーマ設定", change: 0, post: 5, date: "12/01", signal: "red" },
+    { name: "菅原 咲月", phase: "課題設定", change: 1, post: 12, date: "12/15", signal: "green" },
+    { name: "一ノ瀬 美空", phase: "情報収集", change: 0, post: 8, date: "12/10", signal: "yellow" },
+    { name: "川﨑 桜", phase: "実験・調査", change: 2, post: 15, date: "12/16", signal: "green" },
+    { name: "中西 アルノ", phase: "整理・分析", change: 3, post: 18, date: "12/17", signal: "green" },
+    { name: "池田 瑛紗", phase: "まとめ・表現", change: 1, post: 22, date: "12/18", signal: "green" },
+    { name: "小川 彩", phase: "発表準備", change: 2, post: 14, date: "12/14", signal: "green" },
+    { name: "五百城 茉央", phase: "情報収集", change: 0, post: 3, date: "11/20", signal: "red" },
+    { name: "奥田 いろは", phase: "課題設定", change: 1, post: 9, date: "12/08", signal: "yellow" },
+    { name: "冨里 奈央", phase: "実験・調査", change: 0, post: 11, date: "12/12", signal: "green" },
+    { name: "黒見 明香", phase: "テーマ設定", change: 0, post: 2, date: "11/01", signal: "red" },
+    { name: "佐藤 璃果", phase: "情報収集", change: 1, post: 6, date: "12/05", signal: "yellow" },
+    { name: "林 瑠奈", phase: "整理・分析", change: 2, post: 13, date: "12/15", signal: "green" },
+    { name: "松尾 美佑", phase: "実験・調査", change: 3, post: 16, date: "12/17", signal: "green" },
+    { name: "矢久保 美緒", phase: "まとめ・表現", change: 1, post: 8, date: "12/01", signal: "yellow" },
+    { name: "清宮 レイ", phase: "課題設定", change: 0, post: 4, date: "11/15", signal: "red" },
+    { name: "柴田 柚菜", phase: "情報収集", change: 2, post: 12, date: "12/14", signal: "green" },
+    { name: "金川 紗耶", phase: "整理・分析", change: 1, post: 10, date: "12/10", signal: "yellow" },
+    { name: "早川 聖来", phase: "発表準備", change: 3, post: 19, date: "12/18", signal: "green" },
+    { name: "田村 真佑", phase: "実験・調査", change: 2, post: 15, date: "12/16", signal: "green" },
+    { name: "筒井 あやめ", phase: "課題設定", change: 0, post: 7, date: "11/30", signal: "yellow" },
+    { name: "掛橋 沙耶香", phase: "情報収集", change: 1, post: 5, date: "11/25", signal: "red" },
+    { name: "鈴木 絢音", phase: "整理・分析", change: 2, post: 14, date: "12/15", signal: "green" },
+    { name: "山崎 怜奈", phase: "まとめ・表現", change: 4, post: 25, date: "12/18", signal: "green" },
+    { name: "渡辺 みり愛", phase: "実験・調査", change: 1, post: 9, date: "12/05", signal: "yellow" },
+    { name: "北野 日奈子", phase: "課題設定", change: 0, post: 3, date: "11/10", signal: "red" },
+    { name: "新内 眞衣", phase: "情報収集", change: 2, post: 11, date: "12/13", signal: "green" },
+    { name: "寺田 蘭世", phase: "整理・分析", change: 1, post: 8, date: "12/08", signal: "yellow" },
+    { name: "星野 みなみ", phase: "発表準備", change: 3, post: 17, date: "12/17", signal: "green" },
+    { name: "樋口 日奈", phase: "実験・調査", change: 0, post: 6, date: "11/20", signal: "red" },
+    { name: "和田 まあや", phase: "テーマ設定", change: 0, post: 1, date: "11/15", signal: "red" },
+    { name: "伊藤 純奈", phase: "課題設定", change: 1, post: 5, date: "12/01", signal: "yellow" },
+    { name: "佐々木 琴子", phase: "情報収集", change: 0, post: 2, date: "11/10", signal: "red" },
+    { name: "伊藤 かりん", phase: "整理・分析", change: 2, post: 13, date: "12/14", signal: "green" },
+    { name: "斉藤 優里", phase: "実験・調査", change: 3, post: 16, date: "12/16", signal: "green" },
+    { name: "西川 七海", phase: "まとめ・表現", change: 1, post: 9, date: "12/05", signal: "yellow" },
+    { name: "能條 愛未", phase: "発表準備", change: 2, post: 18, date: "12/18", signal: "green" },
+    { name: "川村 真洋", phase: "情報収集", change: 0, post: 4, date: "11/25", signal: "red" },
+    { name: "畠中 清羅", phase: "課題設定", change: 1, post: 7, date: "12/10", signal: "yellow" },
+    { name: "大和 里菜", phase: "実験・調査", change: 0, post: 10, date: "12/12", signal: "green" },
   ];
 
-  const progressData: StudentProgressData[] = rawData.map((d, i) => ({
-    user_id: i + 1,
-    name: d.name,
-    seminar: i < 4 ? "メディアラボ" : seminarList[Math.floor(Math.random() * seminarList.length)],
-    intervention_flag: d.flag,
-    current_phase: d.phase,
-    question_change_count: d.change,
-    post_count: d.post,
-    last_posted_at: d.date,
-    overall_signal: d.signal as "green" | "yellow" | "red",
-  }));
+  // ==========================================
+  // Logic: Intervention Check
+  // ==========================================
+  const calculateInterventionFlag = (change: number, post: number, dateStr: string): boolean => {
+    if (change === 0) return true;
+    if (post < 10) return true;
+    const MOCK_CURRENT_DATE = new Date("2025-12-18");
+    const [month, day] = dateStr.split('/').map(Number);
+    const lastPostDate = new Date(2025, month - 1, day);
+    const diffTime = Math.abs(MOCK_CURRENT_DATE.getTime() - lastPostDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    if (diffDays >= 14) return true;
+    return false;
+  };
 
-  const nonCogData: NonCognitiveData[] = progressData.map(p => ({
-    user_id: p.user_id,
-    name: p.name,
-    overall: p.overall_signal,
-    p1_setting: p.overall_signal === "green" ? "green" : "yellow",
-    p2_gathering: p.overall_signal === "red" ? "red" : "green",
-    p3_involving: p.overall_signal === "yellow" ? "red" : "green",
-    p4_communication: "green",
-  }));
+  const processedData = useMemo(() => {
+    let data = rawData.map((d, i) => ({
+      user_id: i + 1,
+      name: d.name,
+      seminar: i < 4 ? "メディアラボ" : seminarList[i % seminarList.length],
+      intervention_flag: calculateInterventionFlag(d.change, d.post, d.date),
+      current_phase: d.phase,
+      question_change_count: d.change,
+      post_count: d.post,
+      last_posted_at: d.date,
+      overall_signal: d.signal as "green" | "yellow" | "red",
+    }));
+
+    if (filters) {
+      if (filters.class !== "all") {
+        const seminarMap: Record<string, string> = {
+          "media": "メディアラボ", "science": "サイエンスラボ", "international": "国際ゼミ",
+          "engineering": "工学ラボ", "social": "社会科学ゼミ", "physical": "フィジカルラボ",
+          "culture": "文化教育ゼミ", "business": "地域ビジネスゼミ",
+          "region_1_1": "１－１ 地域共創", "region_1_2": "１－２ 地域共創"
+        };
+        const target = seminarMap[filters.class];
+        if (target) data = data.filter(d => d.seminar === target);
+      }
+
+      if (filters.phase !== "all") {
+        if (filters.phase === "setting") data = data.filter(d => d.current_phase.includes("課題") || d.current_phase.includes("テーマ"));
+        if (filters.phase === "gathering") data = data.filter(d => d.current_phase.includes("情報") || d.current_phase.includes("実験"));
+        if (filters.phase === "analysis") data = data.filter(d => d.current_phase.includes("分析") || d.current_phase.includes("まとめ"));
+      }
+
+      if (filters.questionChange !== "all") {
+        if (filters.questionChange === "0") data = data.filter(d => d.question_change_count === 0);
+        if (filters.questionChange === "1") data = data.filter(d => d.question_change_count >= 1);
+        if (filters.questionChange === "3") data = data.filter(d => d.question_change_count >= 3);
+      }
+
+      if (filters.order !== "all") {
+        if (filters.order === "desc") data.sort((a, b) => b.post_count - a.post_count);
+        if (filters.order === "asc") data.sort((a, b) => a.post_count - b.post_count);
+      }
+    }
+    return data;
+  }, [filters]);
+
+  const nonCogDataList = useMemo(() => {
+    return processedData.map(p => {
+      const isGood = p.overall_signal === "green";
+      const isBad = p.overall_signal === "red";
+      return {
+        user_id: p.user_id,
+        name: p.name,
+        overall: p.overall_signal,
+        p1_setting: isGood ? "green" : (isBad ? "red" : "yellow"),
+        p2_gathering: isGood ? "green" : (isBad ? "yellow" : "green"),
+        p3_involving: isGood ? "yellow" : (isBad ? "red" : "yellow"),
+        p4_communication: "green",
+        p5_humility: isGood ? "green" : (isBad ? "red" : "yellow"),
+        p6_execution: p.post_count > 10 ? "green" : "yellow", 
+        p7_completion: isGood ? "green" : (isBad ? "red" : "yellow"),
+      } as NonCognitiveData;
+    });
+  }, [processedData]);
+
+  const totalItems = processedData.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [filters]);
+
+  const currentProgressData = processedData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const currentNonCogData = nonCogDataList.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  const handleDownloadCSV = () => {
+    const exportData = processedData.map(p => {
+      const nc = nonCogDataList.find(n => n.user_id === p.user_id);
+      return {
+        "氏名": p.name,
+        "ゼミ": p.seminar,
+        "介入フラグ": p.intervention_flag ? "あり" : "なし",
+        "フェーズ": p.current_phase,
+        "課題変更回数": p.question_change_count,
+        "投稿数": p.post_count,
+        "最終投稿日": p.last_posted_at,
+        "総合評価": p.overall_signal,
+        "課題設定力": nc?.p1_setting,
+        "情報収集力": nc?.p2_gathering,
+        "巻き込む力": nc?.p3_involving,
+        "対話する力": nc?.p4_communication,
+        "謙虚である力": nc?.p5_humility,
+        "実行する力": nc?.p6_execution,
+        "完遂する力": nc?.p7_completion,
+      };
+    });
+    downloadCSV(exportData, `ask_data_2025.csv`);
+  };
 
   const getSignalDot = (color: "green" | "yellow" | "red") => {
     const colorClass = 
@@ -119,7 +279,7 @@ export function TeacherHomeView({ filters }: TeacherHomeViewProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full space-y-4">
       <FeatureInfoModal
         open={showMobileFilterInfo}
         onClose={() => setShowMobileFilterInfo(false)}
@@ -127,140 +287,14 @@ export function TeacherHomeView({ filters }: TeacherHomeViewProps) {
         description="モバイル版での詳細な絞り込み機能は、フェーズ2以降で最適化して実装予定です。現在はPC版をご利用ください。"
       />
 
-      {/* 詳細なルーブリックと計算ロジックを表示するモーダル */}
-      <FeatureInfoModal
+      {/* 評価基準の詳細モーダル */}
+      <EvaluationCriteriaModal
         open={showLogicInfo}
         onClose={() => setShowLogicInfo(false)}
-        title="評価基準とポイント集計ロジック"
-        description={
-          <div className="text-left text-sm space-y-6 max-h-[60vh] overflow-y-auto pr-2">
-            
-            {/* 集計ロジック */}
-            <div className="space-y-2">
-              <h4 className="font-bold text-slate-800 border-b pb-1">① ポイント集計方法</h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                行動ログと感謝の手紙の内容が、以下の7つの能力のどれに該当するかをAIが判別し、該当する場合のみポイントを加算します。
-              </p>
-              <div className="bg-slate-50 border rounded p-3 text-xs">
-                <p className="font-bold mb-1">加算ルール:</p>
-                <ul className="list-disc list-inside space-y-1 ml-1">
-                  <li><strong>行動ログ（自己評価）</strong>: 1回につき <span className="font-bold text-primary">1ポイント</span></li>
-                  <li><strong>感謝の手紙（他者評価）</strong>: 1回につき <span className="font-bold text-primary">3ポイント</span></li>
-                </ul>
-                <p className="mt-2 text-slate-500">※初期フェーズでは内容の「質」は考慮せず、行動の有無（量）を可視化します。</p>
-              </div>
-            </div>
-
-            {/* ルーブリック詳細 */}
-            <div className="space-y-4">
-              <h4 className="font-bold text-slate-800 border-b pb-1">② 非認知能力ルーブリック（評価基準）</h4>
-              
-              <div className="space-y-4">
-                {[
-                  {
-                    title: "1. 情報収集能力",
-                    desc: "問いに答えるために、必要な情報を集め・確かめ・整理できる",
-                    levels: [
-                      "何を調べるべきかが曖昧で、調べずに思い込みで進めることが多い",
-                      "検索で情報を集めるが、単発で終わりやすい（メモや引用が不十分）",
-                      "問いに必要なキーワードを考えて調べ、メモに残せる",
-                      "情報の信頼性を確認し、異なる立場の情報を比較できる",
-                      "一次情報を設計し、他者が追跡できる形で体系化して共有できる"
-                    ]
-                  },
-                  {
-                    title: "2. 課題設定能力",
-                    desc: "探究に耐える“良い問い”をつくり、検証可能な形に整えられる",
-                    levels: [
-                      "テーマが「好き・面白そう」で止まり、問いになっていない",
-                      "問いはあるが広すぎる／曖昧で、答えが定まらない",
-                      "「何を」「なぜ」「どう確かめるか」が揃った問いを置ける",
-                      "仮説を立て、検証の方法（データ／観察／比較）を設計できる",
-                      "調査の途中で問いを磨き直し、より本質的な問いへ再設計できる"
-                    ]
-                  },
-                  {
-                    title: "3. 巻き込む力",
-                    desc: "探究を深めるために、適切な人・資源・協力を得られる",
-                    levels: [
-                      "困っても相談せず、抱え込んで停滞する",
-                      "近い友人や先生には相談できるが、目的や依頼が曖昧",
-                      "探究を進めるために、必要な相手に相談・依頼ができる",
-                      "インタビュー先・協力者を自分で開拓し、関係を継続できる",
-                      "人と人をつなぎ、周囲が自発的に協力したくなる場をつくれる"
-                    ]
-                  },
-                  {
-                    title: "4. 対話する力",
-                    desc: "聞き取り・議論・発表を通じて、相手の本音や示唆を引き出し探究に活かす",
-                    levels: [
-                      "相手の話を十分に聞けず、必要な情報が取れない",
-                      "質問が誘導的／浅く、探究に繋がる材料が得られない",
-                      "オープンクエスチョンで聞き、要点を要約して確認できる",
-                      "インタビュー設計をして、本質に近づく対話ができる",
-                      "対話を通じて相手の気づきも生み、協力関係を強められる"
-                    ]
-                  },
-                  {
-                    title: "5. 実行する力",
-                    desc: "仮説検証を“まずやってみる”形で進め、改善しながら前に進める",
-                    levels: [
-                      "計画やアイデアで止まり、検証行動に移れない",
-                      "一度は動くが、記録や振り返りが弱く学びが積み上がらない",
-                      "小さな検証（試作・観察等）を回し、結果を記録できる",
-                      "検証計画を立て、継続的に改善できる",
-                      "周囲も巻き込みながら検証サイクルを高速で回せる"
-                    ]
-                  },
-                  {
-                    title: "6. 謙虚である力",
-                    desc: "フィードバックを歓迎し、他者の知見を取り入れて探究の精度を上げる",
-                    levels: [
-                      "指摘を拒んだり、言い訳が先に出て改善が起きない",
-                      "指摘は聞くが、行動や成果物に反映されにくい",
-                      "指摘を受け止め、必要な修正を行える",
-                      "自分から批評を取りに行き、反証を歓迎して精度を上げられる",
-                      "学び合いの文化をつくり、周囲の探究姿勢まで良くしていける"
-                    ]
-                  },
-                  {
-                    title: "7. 完遂する力",
-                    desc: "期限までに成果物を仕上げ、学びを言語化して次へつなげる",
-                    levels: [
-                      "途中で止まり、成果物が完成しない／提出できない",
-                      "最低限は形にするが、根拠・構成・検証が弱い",
-                      "期限までに成果物を完成させ、学びを整理できる",
-                      "根拠の提示が明確で、第三者が理解できる品質になっている",
-                      "成果を資産化し、次の探究や他者の探究に再利用できる"
-                    ]
-                  }
-                ].map((item, i) => (
-                  <div key={i} className="border rounded-md overflow-hidden text-xs">
-                    <div className="bg-slate-100 p-2 font-bold text-slate-800 border-b">
-                      {item.title}
-                      <span className="block text-[10px] font-normal text-slate-500 mt-0.5">{item.desc}</span>
-                    </div>
-                    <div className="p-2 space-y-1 bg-white">
-                      {item.levels.map((lvl, idx) => (
-                        <div key={idx} className="flex gap-2">
-                          <span className={cn(
-                            "font-bold shrink-0 w-8 text-center rounded px-1",
-                            idx < 2 ? "bg-red-50 text-red-600" : idx === 2 ? "bg-green-50 text-green-600" : "bg-blue-50 text-blue-600"
-                          )}>Lv.{idx + 1}</span>
-                          <span className="text-slate-600">{lvl}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        }
       />
 
-      {/* ヘッダーエリア: 「評価基準詳細」ボタンを小さく配置 */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
+      {/* Header Actions */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 shrink-0">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setShowLogicInfo(true)}
@@ -279,143 +313,174 @@ export function TeacherHomeView({ filters }: TeacherHomeViewProps) {
           >
             <Filter className="mr-2 h-4 w-4" /> 絞り込み
           </Button>
-          <Button variant="outline" size="sm" className="bg-white hover:bg-slate-50 text-slate-700 border-slate-300">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleDownloadCSV}
+            className="bg-white hover:bg-slate-50 text-slate-700 border-slate-300"
+          >
             <Download className="mr-2 h-4 w-4" /> CSV出力
           </Button>
-          <Button size="sm" className="bg-primary hover:bg-primary/90 text-white shadow-sm">
+          <Button 
+            size="sm" 
+            className="bg-primary hover:bg-primary/90 text-white shadow-sm"
+            onClick={onFilterReset}
+          >
             すべての選択を解除
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="progress" className="w-full gap-0">
-        {/* タブとテーブルを完全に一体化 */}
-        <div className="flex w-full items-end gap-0">
+      <Tabs defaultValue="progress" className="flex-1 flex flex-col min-h-0 gap-0">
+        <div className="flex w-full items-end gap-0 shrink-0">
           <TabsList className="flex-1 justify-start p-0 gap-0 mb-0 h-auto bg-white border border-slate-200 border-b-0 rounded-none overflow-hidden shadow-none">
             <TabsTrigger 
               value="progress" 
-              className="
-                rounded-none 
-                px-6 py-3 font-bold text-sm
-                data-[state=active]:bg-primary data-[state=active]:text-white
-                data-[state=inactive]:bg-white data-[state=inactive]:text-primary
-                data-[state=inactive]:hover:bg-purple-50
-                shadow-none transition-all border-0
-              "
+              className="rounded-none px-6 py-3 font-bold text-sm data-[state=active]:bg-primary data-[state=active]:text-white data-[state=inactive]:bg-white data-[state=inactive]:text-primary transition-all border-0"
             >
               探究学習 進捗状況
             </TabsTrigger>
             <TabsTrigger 
               value="non-cognitive" 
-              className="
-                rounded-none 
-                px-6 py-3 font-bold text-sm
-                data-[state=active]:bg-primary data-[state=active]:text-white
-                data-[state=inactive]:bg-white data-[state=inactive]:text-primary
-                data-[state=inactive]:hover:bg-purple-50
-                shadow-none transition-all border-0
-              "
+              className="rounded-none px-6 py-3 font-bold text-sm data-[state=active]:bg-primary data-[state=active]:text-white data-[state=inactive]:bg-white data-[state=inactive]:text-primary transition-all border-0"
             >
-              非認知知能データ
+              非認知能力データ
             </TabsTrigger>
           </TabsList>
         </div>
-
-        <TabsContent value="progress" className="m-0">
-          {/* テーブル外枠: タブとフラット接合させるため上辺の角丸・ボーダー・シャドウを除去 */}
-          <div className="border-x border-b border-slate-200 rounded-b-md overflow-hidden bg-white relative z-0">
-            
-            <div className="overflow-x-auto">
-              <Table>
-                {/* カラム幅を固定して均等感を出す */}
-                <TableHeader className="bg-primary hover:bg-primary">
-                  <TableRow className="hover:bg-primary border-b-0">
-                    <TableHead className="font-bold text-white h-12 w-[120px]">氏名</TableHead>
-                    <TableHead className="text-center font-bold text-white h-12 w-[140px]">ゼミ</TableHead>
-                    <TableHead className="text-center font-bold text-white h-12 w-[100px]">介入フラグ</TableHead>
-                    <TableHead className="text-center font-bold text-white h-12 w-[120px]">フェーズ</TableHead>
-                    <TableHead className="text-center font-bold text-white h-12 w-[120px]">課題変更回数</TableHead>
-                    <TableHead className="text-center font-bold text-white h-12 w-[100px]">投稿数</TableHead>
-                    <TableHead className="text-center font-bold text-white h-12 w-[120px]">最終投稿日</TableHead>
-                    <TableHead className="text-center font-bold text-white h-12 w-[140px]">非認知知能力<br/>発揮状況</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {progressData.map((student, index) => (
-                    <TableRow 
-                      key={student.user_id} 
-                      className={cn(
-                        "cursor-pointer transition-colors border-slate-200 hover:bg-purple-50",
-                        index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+        
+        {/* Tab 1: 進捗状況 */}
+        <TabsContent value="progress" className="flex-1 flex flex-col min-h-0 m-0 border-x border-b border-slate-200 rounded-b-md bg-white">
+          <div className="flex-1 overflow-auto relative">
+            <table className="w-full text-sm caption-bottom">
+              <TableHeader className="bg-primary hover:bg-primary sticky top-0 z-20 shadow-sm">
+                <TableRow className="hover:bg-primary border-b-0">
+                  {/* ★修正: 背景色を固定 (bg-primary) かつ z-indexを最大に */}
+                  <TableHead className="font-bold text-white h-12 w-[120px] sticky left-0 z-30 bg-primary shadow-[2px_0_5px_rgba(0,0,0,0.1)]">氏名</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 w-[140px]">ゼミ</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 w-[100px]">介入フラグ</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 w-[120px]">フェーズ</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 w-[120px]">課題変更回数</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 w-[100px]">投稿数</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 w-[120px]">最終投稿日</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 w-[140px]">非認知知能力<br/>発揮状況</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {currentProgressData.map((student, index) => (
+                  <TableRow 
+                    key={student.user_id} 
+                    className={cn(
+                      "cursor-pointer transition-colors border-slate-200 hover:bg-purple-50",
+                      index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+                    )}
+                  >
+                    {/* ★修正: 透過を防ぐために背景色を行に合わせて指定 (bg-white or bg-slate-50) */}
+                    <TableCell className={cn(
+                      "font-bold text-slate-800 py-3 pl-4 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)] border-r border-slate-100",
+                      index % 2 === 0 ? "bg-white" : "bg-[#f9fafb]" 
+                    )}>
+                      {student.name}
+                    </TableCell>
+                    <TableCell className="text-center text-xs font-bold text-slate-600 py-3">{student.seminar}</TableCell>
+                    <TableCell className="text-center py-3">
+                      {student.intervention_flag && (
+                        <div className="flex justify-center" title="要介入">
+                          <Flag className="w-5 h-5 text-primary fill-primary animate-pulse" />
+                        </div>
                       )}
-                    >
-                      <TableCell className="font-bold text-slate-800 py-3 pl-4">
-                        {student.name}
-                      </TableCell>
-                      <TableCell className="text-center text-xs font-bold text-slate-600 py-3">
-                        {student.seminar}
-                      </TableCell>
-                      <TableCell className="text-center py-3">
-                        {student.intervention_flag && (
-                          <div className="flex justify-center">
-                            <Flag className="w-5 h-5 text-primary fill-primary animate-pulse" />
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center font-medium text-slate-700 py-3">{student.current_phase}</TableCell>
-                      <TableCell className="text-center font-medium text-slate-700 py-3">{student.question_change_count}</TableCell>
-                      <TableCell className="text-center font-bold text-slate-900 py-3 text-lg">{student.post_count}</TableCell>
-                      <TableCell className="text-center font-medium text-slate-600 py-3">{student.last_posted_at}</TableCell>
-                      <TableCell className="text-center py-3">
-                        {getSignalDot(student.overall_signal)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                    </TableCell>
+                    <TableCell className="text-center font-medium text-slate-700 py-3">{student.current_phase}</TableCell>
+                    <TableCell className="text-center font-medium text-slate-700 py-3">{student.question_change_count}</TableCell>
+                    <TableCell className="text-center font-bold text-slate-900 py-3 text-lg">{student.post_count}</TableCell>
+                    <TableCell className="text-center font-medium text-slate-600 py-3">{student.last_posted_at}</TableCell>
+                    <TableCell className="text-center py-3">{getSignalDot(student.overall_signal)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </table>
           </div>
         </TabsContent>
 
-        <TabsContent value="non-cognitive" className="m-0">
-          <div className="border-x border-b border-slate-200 rounded-b-md overflow-hidden bg-white relative z-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-primary hover:bg-primary">
-                  <TableRow className="hover:bg-primary border-b-0">
-                    <TableHead className="font-bold text-white h-12 w-[120px]">氏名</TableHead>
-                    <TableHead className="text-center font-bold text-white h-12 w-[100px]">総合</TableHead>
-                    <TableHead className="text-center font-bold text-white h-12 w-[120px]">課題設定力</TableHead>
-                    <TableHead className="text-center font-bold text-white h-12 w-[120px]">情報収集力</TableHead>
-                    <TableHead className="text-center font-bold text-white h-12 w-[120px]">巻き込み力</TableHead>
-                    <TableHead className="text-center font-bold text-white h-12 w-[120px]">対話する力</TableHead>
+        {/* Tab 2: 非認知能力 */}
+        <TabsContent value="non-cognitive" className="flex-1 flex flex-col min-h-0 m-0 border-x border-b border-slate-200 rounded-b-md bg-white">
+           <div className="flex-1 overflow-auto relative">
+            <table className="w-full text-sm caption-bottom">
+              <TableHeader className="bg-primary hover:bg-primary sticky top-0 z-20 shadow-sm">
+                <TableRow className="hover:bg-primary border-b-0">
+                  {/* ★修正: 背景色を固定 (bg-primary) かつ z-indexを最大に */}
+                  <TableHead className="font-bold text-white h-12 min-w-[120px] sticky left-0 z-30 bg-primary shadow-[2px_0_5px_rgba(0,0,0,0.1)]">氏名</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 min-w-[80px]">総合</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 min-w-[100px]">課題設定力</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 min-w-[100px]">情報収集力</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 min-w-[100px]">巻き込む力</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 min-w-[100px]">対話する力</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 min-w-[100px]">謙虚である力</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 min-w-[100px]">実行する力</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 min-w-[100px]">完遂する力</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {currentNonCogData.map((student, index) => (
+                  <TableRow 
+                    key={student.user_id} 
+                    className={cn(
+                      "cursor-pointer transition-colors border-slate-200 hover:bg-purple-50",
+                      index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+                    )}
+                  >
+                    {/* ★修正: 透過を防ぐために背景色を行に合わせて指定 */}
+                    <TableCell className={cn(
+                      "font-bold text-slate-800 py-3 pl-4 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)] border-r border-slate-100",
+                      index % 2 === 0 ? "bg-white" : "bg-[#f9fafb]"
+                    )}>
+                      {student.name}
+                    </TableCell>
+                    <TableCell className="text-center py-3">{getSignalDot(student.overall)}</TableCell>
+                    <TableCell className="text-center py-3">{getSignalDot(student.p1_setting)}</TableCell>
+                    <TableCell className="text-center py-3">{getSignalDot(student.p2_gathering)}</TableCell>
+                    <TableCell className="text-center py-3">{getSignalDot(student.p3_involving)}</TableCell>
+                    <TableCell className="text-center py-3">{getSignalDot(student.p4_communication)}</TableCell>
+                    <TableCell className="text-center py-3">{getSignalDot(student.p5_humility)}</TableCell>
+                    <TableCell className="text-center py-3">{getSignalDot(student.p6_execution)}</TableCell>
+                    <TableCell className="text-center py-3">{getSignalDot(student.p7_completion)}</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {nonCogData.map((student, index) => (
-                    <TableRow 
-                      key={student.user_id} 
-                      className={cn(
-                        "cursor-pointer transition-colors border-slate-200 hover:bg-purple-50",
-                        index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
-                      )}
-                    >
-                      <TableCell className="font-bold text-slate-800 py-3 pl-4">
-                        {student.name}
-                      </TableCell>
-                      <TableCell className="text-center py-3">{getSignalDot(student.overall)}</TableCell>
-                      <TableCell className="text-center py-3">{getSignalDot(student.p1_setting)}</TableCell>
-                      <TableCell className="text-center py-3">{getSignalDot(student.p2_gathering)}</TableCell>
-                      <TableCell className="text-center py-3">{getSignalDot(student.p3_involving)}</TableCell>
-                      <TableCell className="text-center py-3">{getSignalDot(student.p4_communication)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                ))}
+              </TableBody>
+            </table>
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Footer Pagination */}
+      <div className="flex items-center justify-between pt-1 px-1 shrink-0 h-1">
+        <div className="text-[10px] sm:text-xs text-slate-500 font-medium">
+          全 {totalItems} 件中 <span className="font-bold text-slate-800">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="font-bold text-slate-800">{Math.min(currentPage * itemsPerPage, totalItems)}</span> 件を表示
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="h-7 w-7 p-0"
+          >
+            <ChevronLeft className="h-3 w-3" />
+          </Button>
+          <div className="text-xs font-bold text-slate-700 px-2">
+            {currentPage} / {totalPages}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="h-7 w-7 p-0"
+          >
+            <ChevronRight className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
