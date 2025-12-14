@@ -15,7 +15,7 @@ export default function EditPostPage() {
   const [content2, setContent2] = useState("");
   const [content3, setContent3] = useState("");
   const [questionStateChange, setQuestionStateChange] = useState("none");
-  const [phaseLabel, setPhaseLabel] = useState("theme_setting");
+  const [phaseLabel, setPhaseLabel] = useState("テーマ設定");
   const [selectedAbilities, setSelectedAbilities] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -172,12 +172,12 @@ export default function EditPostPage() {
                   onChange={(e) => setPhaseLabel(e.target.value)}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
                 >
-                  <option value="theme_setting">テーマ設定</option>
-                  <option value="information_gathering">情報収集</option>
-                  <option value="planning">計画</option>
-                  <option value="execution">実行</option>
-                  <option value="verification">検証</option>
-                  <option value="summary">まとめ</option>
+                  <option value="テーマ設定">テーマ設定</option>
+                  <option value="課題設定">課題設定</option>
+                  <option value="情報収集">情報収集</option>
+                  <option value="整理・分析">整理・分析</option>
+                  <option value="まとめ・表現">まとめ・表現</option>
+                  <option value="発表準備">発表準備</option>
                 </select>
               </div>
 

@@ -12,7 +12,9 @@ interface LearningProgress {
   class_name: string | null;
   phase: string;
   post_count: number;
+  question_change_count: number;
   last_posted_at: string | null;
+  intervention_flag: boolean;
 }
 
 interface AbilityData {
@@ -169,6 +171,9 @@ export default function AdminDashboardPage() {
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">
+                      状態
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">
                       氏名
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">
@@ -181,13 +186,27 @@ export default function AdminDashboardPage() {
                       投稿数
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">
+                      問いの変更
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-700">
                       最終投稿日
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-white">
                   {learningProgress.map((student) => (
-                    <tr key={student.user_id} className="hover:bg-slate-50">
+                    <tr key={student.user_id} className={`hover:bg-slate-50 ${student.intervention_flag ? "bg-red-50" : ""}`}>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm">
+                        {student.intervention_flag ? (
+                          <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+                            要介入
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                            順調
+                          </span>
+                        )}
+                      </td>
                       <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-900">
                         {student.full_name}
                       </td>
@@ -201,6 +220,9 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
                         {student.post_count}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
+                        {student.question_change_count}回
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
                         {student.last_posted_at
