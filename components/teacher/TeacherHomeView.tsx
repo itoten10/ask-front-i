@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Filter, Download, Flag, Info, ChevronLeft, ChevronRight } from "lucide-react";
 import { FeatureInfoModal } from "@/components/student/FeatureInfoModal";
 import { EvaluationCriteriaModal } from "@/components/teacher/EvaluationCriteriaModal";
+import { StudentDetailSheet } from "@/components/teacher/StudentDetailSheet";
+import { StudentHistoryView } from "@/components/teacher/StudentHistoryView";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
@@ -15,21 +17,18 @@ import { cn } from "@/lib/utils";
 // Types & Backend Integration
 // ==========================================
 
-// BACKEND_INTEGRATION: student_progress_snapshots テーブル + users テーブルの結合データを想定
-// API_CONTRACT: GET /api/v1/teacher/dashboard/progress?period_id=1
 interface StudentProgressData {
-  user_id: number;                // users.id
-  name: string;                   // users.full_name
-  seminar: string;                // users.class_or_seminar
-  intervention_flag: boolean;     // student_progress_snapshots.intervention_flag
-  current_phase: string;          // student_progress_snapshots.current_phase_label
-  question_change_count: number;  // student_progress_snapshots.question_change_count
-  post_count: number;             // student_progress_snapshots.total_action_count
-  last_posted_at: string;         // student_progress_snapshots.last_posted_at
-  overall_signal: "green" | "yellow" | "red"; // student_progress_snapshots.overall_signal_color
+  user_id: number;
+  name: string;
+  seminar: string;
+  intervention_flag: boolean;
+  current_phase: string;
+  question_change_count: number;
+  post_count: number;
+  last_posted_at: string;
+  overall_signal: "green" | "yellow" | "red";
 }
 
-// NOTE(DB): non_cog_scores テーブルのデータを想定
 interface NonCognitiveData {
   user_id: number;
   name: string;
@@ -72,6 +71,12 @@ const downloadCSV = (data: any[], fileName: string) => {
 export function TeacherHomeView({ filters, onFilterReset }: TeacherHomeViewProps) {
   const [showMobileFilterInfo, setShowMobileFilterInfo] = useState(false);
   const [showLogicInfo, setShowLogicInfo] = useState(false);
+  
+  // 詳細シート・履歴表示用のState
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [selectedStudentName, setSelectedStudentName] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
@@ -246,28 +251,16 @@ export function TeacherHomeView({ filters, onFilterReset }: TeacherHomeViewProps
     }
   };
 
-  const handleDownloadCSV = () => {
-    const exportData = processedData.map(p => {
-      const nc = nonCogDataList.find(n => n.user_id === p.user_id);
-      return {
-        "氏名": p.name,
-        "ゼミ": p.seminar,
-        "介入フラグ": p.intervention_flag ? "あり" : "なし",
-        "フェーズ": p.current_phase,
-        "課題変更回数": p.question_change_count,
-        "投稿数": p.post_count,
-        "最終投稿日": p.last_posted_at,
-        "総合評価": p.overall_signal,
-        "課題設定力": nc?.p1_setting,
-        "情報収集力": nc?.p2_gathering,
-        "巻き込む力": nc?.p3_involving,
-        "対話する力": nc?.p4_communication,
-        "謙虚である力": nc?.p5_humility,
-        "実行する力": nc?.p6_execution,
-        "完遂する力": nc?.p7_completion,
-      };
-    });
-    downloadCSV(exportData, `ask_data_2025.csv`);
+  const isClickableStudent = (name: string) => {
+    const targetStudents = ["髙橋 由華", "江藤 泰平", "由井 理月", "伊藤 誠人"];
+    return targetStudents.includes(name);
+  };
+
+  const handleRowClick = (studentId: number, studentName: string) => {
+    if (isClickableStudent(studentName)) {
+      setSelectedStudentId(studentId);
+      setSelectedStudentName(studentName);
+    }
   };
 
   const getSignalDot = (color: "green" | "yellow" | "red") => {
@@ -278,8 +271,29 @@ export function TeacherHomeView({ filters, onFilterReset }: TeacherHomeViewProps
     return <div className={`h-4 w-4 rounded-full mx-auto ${colorClass}`} />;
   };
 
+  const handleShowHistory = () => {
+    setSelectedStudentId(null);
+    setShowHistory(true);
+  };
+
+  const handleBackToTable = () => {
+    setShowHistory(false);
+    setSelectedStudentName(null);
+  };
+
+  // ★重要: ここで分岐
+  if (showHistory && selectedStudentName) {
+    return (
+      <StudentHistoryView 
+        studentName={selectedStudentName} 
+        onBack={handleBackToTable} 
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col h-full space-y-4">
+      {/* モバイルフィルターの注意書きモーダル */}
       <FeatureInfoModal
         open={showMobileFilterInfo}
         onClose={() => setShowMobileFilterInfo(false)}
@@ -293,39 +307,31 @@ export function TeacherHomeView({ filters, onFilterReset }: TeacherHomeViewProps
         onClose={() => setShowLogicInfo(false)}
       />
 
+      {/* 生徒詳細シート (選択状態に応じて表示) */}
+      <StudentDetailSheet
+        isOpen={!!selectedStudentId}
+        onClose={() => setSelectedStudentId(null)}
+        studentId={selectedStudentId}
+        studentName={selectedStudentName}
+        onHistoryClick={handleShowHistory}
+      />
+
       {/* Header Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 shrink-0">
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setShowLogicInfo(true)}
-            className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary transition-colors group"
-          >
+          <button onClick={() => setShowLogicInfo(true)} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary transition-colors group">
             <Info className="w-4 h-4" />
             <span className="border-b border-dotted border-slate-400 group-hover:border-primary">評価基準詳細</span>
           </button>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="lg:hidden"
-            onClick={() => setShowMobileFilterInfo(true)}
-          >
+          <Button variant="outline" size="sm" className="lg:hidden" onClick={() => setShowMobileFilterInfo(true)}>
             <Filter className="mr-2 h-4 w-4" /> 絞り込み
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleDownloadCSV}
-            className="bg-white hover:bg-slate-50 text-slate-700 border-slate-300"
-          >
+          <Button variant="outline" size="sm" onClick={() => downloadCSV(processedData, `ask_data_2025.csv`)} className="bg-white hover:bg-slate-50 text-slate-700 border-slate-300">
             <Download className="mr-2 h-4 w-4" /> CSV出力
           </Button>
-          <Button 
-            size="sm" 
-            className="bg-primary hover:bg-primary/90 text-white shadow-sm"
-            onClick={onFilterReset}
-          >
+          <Button size="sm" className="bg-primary hover:bg-primary/90 text-white shadow-sm" onClick={onFilterReset}>
             すべての選択を解除
           </Button>
         </div>
@@ -334,16 +340,10 @@ export function TeacherHomeView({ filters, onFilterReset }: TeacherHomeViewProps
       <Tabs defaultValue="progress" className="flex-1 flex flex-col min-h-0 gap-0">
         <div className="flex w-full items-end gap-0 shrink-0">
           <TabsList className="flex-1 justify-start p-0 gap-0 mb-0 h-auto bg-white border border-slate-200 border-b-0 rounded-none overflow-hidden shadow-none">
-            <TabsTrigger 
-              value="progress" 
-              className="rounded-none px-6 py-3 font-bold text-sm data-[state=active]:bg-primary data-[state=active]:text-white data-[state=inactive]:bg-white data-[state=inactive]:text-primary transition-all border-0"
-            >
+            <TabsTrigger value="progress" className="rounded-none px-6 py-3 font-bold text-sm data-[state=active]:bg-primary data-[state=active]:text-white data-[state=inactive]:bg-white data-[state=inactive]:text-primary transition-all border-0">
               探究学習 進捗状況
             </TabsTrigger>
-            <TabsTrigger 
-              value="non-cognitive" 
-              className="rounded-none px-6 py-3 font-bold text-sm data-[state=active]:bg-primary data-[state=active]:text-white data-[state=inactive]:bg-white data-[state=inactive]:text-primary transition-all border-0"
-            >
+            <TabsTrigger value="non-cognitive" className="rounded-none px-6 py-3 font-bold text-sm data-[state=active]:bg-primary data-[state=active]:text-white data-[state=inactive]:bg-white data-[state=inactive]:text-primary transition-all border-0">
               非認知能力データ
             </TabsTrigger>
           </TabsList>
@@ -353,10 +353,9 @@ export function TeacherHomeView({ filters, onFilterReset }: TeacherHomeViewProps
         <TabsContent value="progress" className="flex-1 flex flex-col min-h-0 m-0 border-x border-b border-slate-200 rounded-b-md bg-white">
           <div className="flex-1 overflow-auto relative">
             <table className="w-full text-sm caption-bottom">
-              <TableHeader className="bg-primary hover:bg-primary sticky top-0 z-20 shadow-sm">
+              <TableHeader className="bg-primary hover:bg-primary sticky top-0 z-40 shadow-sm">
                 <TableRow className="hover:bg-primary border-b-0">
-                  {/* ★修正: 背景色を固定 (bg-primary) かつ z-indexを最大に */}
-                  <TableHead className="font-bold text-white h-12 w-[120px] sticky left-0 z-30 bg-primary shadow-[2px_0_5px_rgba(0,0,0,0.1)]">氏名</TableHead>
+                  <TableHead className="font-bold text-white h-12 w-[120px] sticky left-0 z-50 bg-primary shadow-[2px_0_5px_rgba(0,0,0,0.1)]">氏名</TableHead>
                   <TableHead className="text-center font-bold text-white h-12 w-[140px]">ゼミ</TableHead>
                   <TableHead className="text-center font-bold text-white h-12 w-[100px]">介入フラグ</TableHead>
                   <TableHead className="text-center font-bold text-white h-12 w-[120px]">フェーズ</TableHead>
@@ -367,36 +366,42 @@ export function TeacherHomeView({ filters, onFilterReset }: TeacherHomeViewProps
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentProgressData.map((student, index) => (
-                  <TableRow 
-                    key={student.user_id} 
-                    className={cn(
-                      "cursor-pointer transition-colors border-slate-200 hover:bg-purple-50",
-                      index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
-                    )}
-                  >
-                    {/* ★修正: 透過を防ぐために背景色を行に合わせて指定 (bg-white or bg-slate-50) */}
-                    <TableCell className={cn(
-                      "font-bold text-slate-800 py-3 pl-4 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)] border-r border-slate-100",
-                      index % 2 === 0 ? "bg-white" : "bg-[#f9fafb]" 
-                    )}>
-                      {student.name}
-                    </TableCell>
-                    <TableCell className="text-center text-xs font-bold text-slate-600 py-3">{student.seminar}</TableCell>
-                    <TableCell className="text-center py-3">
-                      {student.intervention_flag && (
-                        <div className="flex justify-center" title="要介入">
-                          <Flag className="w-5 h-5 text-primary fill-primary animate-pulse" />
-                        </div>
+                {currentProgressData.map((student, index) => {
+                  const clickable = isClickableStudent(student.name);
+                  return (
+                    <TableRow 
+                      key={student.user_id} 
+                      onClick={() => handleRowClick(student.user_id, student.name)}
+                      className={cn(
+                        "transition-colors border-slate-200",
+                        index % 2 === 0 ? "bg-white" : "bg-slate-50/50",
+                        clickable ? "cursor-pointer hover:bg-purple-50 group" : "cursor-default"
                       )}
-                    </TableCell>
-                    <TableCell className="text-center font-medium text-slate-700 py-3">{student.current_phase}</TableCell>
-                    <TableCell className="text-center font-medium text-slate-700 py-3">{student.question_change_count}</TableCell>
-                    <TableCell className="text-center font-bold text-slate-900 py-3 text-lg">{student.post_count}</TableCell>
-                    <TableCell className="text-center font-medium text-slate-600 py-3">{student.last_posted_at}</TableCell>
-                    <TableCell className="text-center py-3">{getSignalDot(student.overall_signal)}</TableCell>
-                  </TableRow>
-                ))}
+                    >
+                      <TableCell className={cn(
+                        "font-bold text-slate-800 py-3 pl-4 sticky left-0 z-30 shadow-[2px_0_5px_rgba(0,0,0,0.05)] border-r border-slate-100 transition-colors",
+                        index % 2 === 0 ? "bg-white" : "bg-[#f9fafb]",
+                        clickable && "group-hover:bg-purple-50",
+                        clickable ? "text-primary underline decoration-primary/30 underline-offset-4" : "text-slate-800"
+                      )}>
+                        {student.name}
+                      </TableCell>
+                      <TableCell className="text-center text-xs font-bold text-slate-600 py-3">{student.seminar}</TableCell>
+                      <TableCell className="text-center py-3">
+                        {student.intervention_flag && (
+                          <div className="flex justify-center" title="要介入">
+                            <Flag className="w-5 h-5 text-primary fill-primary animate-pulse" />
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center font-medium text-slate-700 py-3">{student.current_phase}</TableCell>
+                      <TableCell className="text-center font-medium text-slate-700 py-3">{student.question_change_count}</TableCell>
+                      <TableCell className="text-center font-bold text-slate-900 py-3 text-lg">{student.post_count}</TableCell>
+                      <TableCell className="text-center font-medium text-slate-600 py-3">{student.last_posted_at}</TableCell>
+                      <TableCell className="text-center py-3">{getSignalDot(student.overall_signal)}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </table>
           </div>
@@ -406,10 +411,9 @@ export function TeacherHomeView({ filters, onFilterReset }: TeacherHomeViewProps
         <TabsContent value="non-cognitive" className="flex-1 flex flex-col min-h-0 m-0 border-x border-b border-slate-200 rounded-b-md bg-white">
            <div className="flex-1 overflow-auto relative">
             <table className="w-full text-sm caption-bottom">
-              <TableHeader className="bg-primary hover:bg-primary sticky top-0 z-20 shadow-sm">
+              <TableHeader className="bg-primary hover:bg-primary sticky top-0 z-40 shadow-sm">
                 <TableRow className="hover:bg-primary border-b-0">
-                  {/* ★修正: 背景色を固定 (bg-primary) かつ z-indexを最大に */}
-                  <TableHead className="font-bold text-white h-12 min-w-[120px] sticky left-0 z-30 bg-primary shadow-[2px_0_5px_rgba(0,0,0,0.1)]">氏名</TableHead>
+                  <TableHead className="font-bold text-white h-12 min-w-[120px] sticky left-0 z-50 bg-primary shadow-[2px_0_5px_rgba(0,0,0,0.1)]">氏名</TableHead>
                   <TableHead className="text-center font-bold text-white h-12 min-w-[80px]">総合</TableHead>
                   <TableHead className="text-center font-bold text-white h-12 min-w-[100px]">課題設定力</TableHead>
                   <TableHead className="text-center font-bold text-white h-12 min-w-[100px]">情報収集力</TableHead>
@@ -421,31 +425,37 @@ export function TeacherHomeView({ filters, onFilterReset }: TeacherHomeViewProps
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentNonCogData.map((student, index) => (
-                  <TableRow 
-                    key={student.user_id} 
-                    className={cn(
-                      "cursor-pointer transition-colors border-slate-200 hover:bg-purple-50",
-                      index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
-                    )}
-                  >
-                    {/* ★修正: 透過を防ぐために背景色を行に合わせて指定 */}
-                    <TableCell className={cn(
-                      "font-bold text-slate-800 py-3 pl-4 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)] border-r border-slate-100",
-                      index % 2 === 0 ? "bg-white" : "bg-[#f9fafb]"
-                    )}>
-                      {student.name}
-                    </TableCell>
-                    <TableCell className="text-center py-3">{getSignalDot(student.overall)}</TableCell>
-                    <TableCell className="text-center py-3">{getSignalDot(student.p1_setting)}</TableCell>
-                    <TableCell className="text-center py-3">{getSignalDot(student.p2_gathering)}</TableCell>
-                    <TableCell className="text-center py-3">{getSignalDot(student.p3_involving)}</TableCell>
-                    <TableCell className="text-center py-3">{getSignalDot(student.p4_communication)}</TableCell>
-                    <TableCell className="text-center py-3">{getSignalDot(student.p5_humility)}</TableCell>
-                    <TableCell className="text-center py-3">{getSignalDot(student.p6_execution)}</TableCell>
-                    <TableCell className="text-center py-3">{getSignalDot(student.p7_completion)}</TableCell>
-                  </TableRow>
-                ))}
+                {currentNonCogData.map((student, index) => {
+                  const clickable = isClickableStudent(student.name);
+                  return (
+                    <TableRow 
+                      key={student.user_id} 
+                      onClick={() => handleRowClick(student.user_id, student.name)}
+                      className={cn(
+                        "transition-colors border-slate-200",
+                        index % 2 === 0 ? "bg-white" : "bg-slate-50/50",
+                        clickable ? "cursor-pointer hover:bg-purple-50 group" : "cursor-default"
+                      )}
+                    >
+                      <TableCell className={cn(
+                        "font-bold text-slate-800 py-3 pl-4 sticky left-0 z-30 shadow-[2px_0_5px_rgba(0,0,0,0.05)] border-r border-slate-100 transition-colors",
+                        index % 2 === 0 ? "bg-white" : "bg-[#f9fafb]",
+                        clickable && "group-hover:bg-purple-50",
+                        clickable ? "text-primary underline decoration-primary/30 underline-offset-4" : "text-slate-800"
+                      )}>
+                        {student.name}
+                      </TableCell>
+                      <TableCell className="text-center py-3">{getSignalDot(student.overall)}</TableCell>
+                      <TableCell className="text-center py-3">{getSignalDot(student.p1_setting)}</TableCell>
+                      <TableCell className="text-center py-3">{getSignalDot(student.p2_gathering)}</TableCell>
+                      <TableCell className="text-center py-3">{getSignalDot(student.p3_involving)}</TableCell>
+                      <TableCell className="text-center py-3">{getSignalDot(student.p4_communication)}</TableCell>
+                      <TableCell className="text-center py-3">{getSignalDot(student.p5_humility)}</TableCell>
+                      <TableCell className="text-center py-3">{getSignalDot(student.p6_execution)}</TableCell>
+                      <TableCell className="text-center py-3">{getSignalDot(student.p7_completion)}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </table>
           </div>

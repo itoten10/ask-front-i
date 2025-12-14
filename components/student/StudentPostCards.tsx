@@ -5,10 +5,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Eye, User, ThumbsUp, MessageSquare } from "lucide-react";
-import { Button } from "@/components/ui/button"; // Buttonをインポート
+import { Button } from "@/components/ui/button";
 
-// Types
-interface Post {
+export interface Post {
   id: number;
   labName: string;
   authorName: string;
@@ -20,6 +19,9 @@ interface Post {
   likedByMe?: boolean;
   isNew?: boolean;
   theme?: string;
+  phases?: string[];
+  questionState?: string;
+  avatarUrl?: string; // 画像指定用
 }
 
 interface Notice {
@@ -31,15 +33,18 @@ interface Notice {
   url: string;
 }
 
+// デフォルトの画像決定ロジック
 const getAvatarUrl = (id: number, isMyPost: boolean = false) => {
   if (isMyPost) return "/avatars/01.jpg";
   const num = ((id % 3) + 2); 
   return `/avatars/0${num}.jpg`;
 };
 
-// FeaturedPostCard, NoticeCard は変更なしのため省略します...
-// (元のコードをそのまま維持してください)
+// 1. FeaturedPostCard
 export function FeaturedPostCard({ post, onClick }: { post: Post; onClick: () => void }) {
+  // ★修正: post.avatarUrl があればそれを使い、なければ getAvatarUrl を使う
+  const avatarSrc = post.avatarUrl ? post.avatarUrl : (!post.isAnonymous ? getAvatarUrl(post.id, post.isMyPost) : undefined);
+
   return (
     <Card 
       onClick={onClick}
@@ -48,7 +53,7 @@ export function FeaturedPostCard({ post, onClick }: { post: Post; onClick: () =>
       <CardContent className="p-6 flex-1 flex flex-col space-y-4">
         <div className="flex items-start gap-3">
           <Avatar className="h-10 w-10 border border-slate-200 bg-white">
-            {!post.isAnonymous && <AvatarImage src={getAvatarUrl(post.id, post.isMyPost)} />}
+            {avatarSrc && <AvatarImage src={avatarSrc} />}
             <AvatarFallback className="bg-slate-100 text-slate-400">
               {post.isAnonymous ? <User className="h-5 w-5" /> : post.labName[0]}
             </AvatarFallback>
@@ -73,6 +78,7 @@ export function FeaturedPostCard({ post, onClick }: { post: Post; onClick: () =>
   );
 }
 
+// 2. NoticeCard (変更なし)
 export function NoticeCard({ notice, qrCodeUrl, onClick }: { notice: Notice; qrCodeUrl?: string; onClick: () => void }) {
   return (
     <Card 
@@ -114,25 +120,25 @@ export function NoticeCard({ notice, qrCodeUrl, onClick }: { notice: Notice; qrC
   );
 }
 
-
-// -----------------------------------------------------------------
 // 3. StandardPostCard (修正)
-// -----------------------------------------------------------------
 export function StandardPostCard({ 
   post, 
   isLiked, 
   onLike, 
   onClick,
-  onComment // ★ 追加: コメントクリック時のハンドラ
+  onComment
 }: { 
   post: Post; 
   isLiked: boolean; 
   onLike: (id: number) => void;
   onClick: () => void;
-  onComment: () => void; // ★ 追加
+  onComment: () => void;
 }) {
   const currentLikeCount = post.likeCount + (isLiked && !post.likedByMe ? 1 : 0) - (!isLiked && post.likedByMe ? 1 : 0);
   const postDate = post.isNew ? "12月18日" : "12月10日";
+
+  // ★修正: post.avatarUrl があれば優先するロジックを明確化
+  const avatarSrc = post.avatarUrl ? post.avatarUrl : (!post.isAnonymous ? getAvatarUrl(post.id, post.isMyPost) : undefined);
 
   return (
     <Card 
@@ -157,7 +163,8 @@ export function StandardPostCard({
       <CardContent className="p-6 flex-1 flex flex-col space-y-4">
         <div className="flex items-start gap-3">
           <Avatar className="h-12 w-12 border border-slate-200 bg-white">
-            {!post.isAnonymous && <AvatarImage src={getAvatarUrl(post.id, post.isMyPost)} />}
+            {/* ★修正: avatarSrcを使用 */}
+            {avatarSrc && <AvatarImage src={avatarSrc} />}
             <AvatarFallback className="bg-slate-100 text-slate-400">
               {post.isAnonymous ? <User className="h-6 w-6" /> : post.labName[0]}
             </AvatarFallback>
@@ -191,7 +198,6 @@ export function StandardPostCard({
         
         <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
           <div className="flex gap-4">
-            {/* いいねボタン: Buttonコンポーネントに変更してホバー感を統一 */}
             <Button 
               variant="ghost" 
               size="sm"
@@ -202,15 +208,14 @@ export function StandardPostCard({
               <span className="text-xs font-bold">{currentLikeCount}</span>
             </Button>
 
-            {/* コメントボタン: Buttonコンポーネントに変更し、onClickを追加 */}
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={(e) => { e.stopPropagation(); onComment(); }} // ★ 修正
+              onClick={(e) => { e.stopPropagation(); onComment(); }}
               className="gap-1.5 h-8 px-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100"
             >
               <MessageSquare className="h-4 w-4" />
-              <span className="text-xs font-bold">0</span>
+              <span className="text-xs font-bold">0</span>  
             </Button>
           </div>
 

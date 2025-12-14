@@ -1,4 +1,4 @@
-// components/student/PostDetailModal.tsx
+// ask-front-i/components/student/PostDetailModal.tsx
 
 "use client";
 
@@ -8,23 +8,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
 import { FeatureInfoModal } from "@/components/student/FeatureInfoModal";
-
-// (Postインターフェース等は既存のまま)
-interface Post {
-  id: number;
-  labName: string;
-  authorName: string;
-  content: string;
-  isViewedByTeacher: boolean;
-  isAnonymous?: boolean;
-  isMyPost?: boolean;
-  likeCount: number;
-  likedByMe?: boolean;
-  isNew?: boolean;
-  theme?: string;
-  phases?: string[];
-  questionState?: string;
-}
+// ★修正: Post型を StudentPostCards からインポートする
+import { Post } from "@/components/student/StudentPostCards";
 
 interface PostDetailModalProps {
   post: Post | null;
@@ -39,6 +24,7 @@ export function PostDetailModal({ post, isOpen, onClose, isLiked, onLike }: Post
 
   if (!isOpen || !post) return null;
 
+  // デフォルト画像ロジック (avatarUrlがない場合のフォールバック)
   const getAvatarUrl = (id: number, isMyPost: boolean = false) => {
     if (isMyPost) return "/avatars/01.jpg";
     const num = ((id % 3) + 2); 
@@ -46,6 +32,9 @@ export function PostDetailModal({ post, isOpen, onClose, isLiked, onLike }: Post
   };
 
   const currentLikeCount = post.likeCount + (isLiked && !post.likedByMe ? 1 : 0) - (!isLiked && post.likedByMe ? 1 : 0);
+
+  // ★修正: 表示するアバター画像を決定
+  const avatarSrc = post.avatarUrl ? post.avatarUrl : (!post.isAnonymous ? getAvatarUrl(post.id, post.isMyPost) : undefined);
 
   return (
     <>
@@ -62,11 +51,6 @@ export function PostDetailModal({ post, isOpen, onClose, isLiked, onLike }: Post
         }
       />
 
-      {/* 
-        修正: z-indexを 100 に変更
-        これにより、下部ナビゲーション(z-40)より確実に前面に表示され、
-        モーダル展開時のレイアウト崩れを防ぎます。
-      */}
       <div 
         className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 p-4"
         onClick={onClose}
@@ -75,7 +59,6 @@ export function PostDetailModal({ post, isOpen, onClose, isLiked, onLike }: Post
           className="bg-white w-full max-w-2xl max-h-[90vh] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 relative"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* 閉じるボタン */}
           <Button 
             variant="ghost" 
             size="icon" 
@@ -85,11 +68,11 @@ export function PostDetailModal({ post, isOpen, onClose, isLiked, onLike }: Post
             <X className="h-6 w-6 text-slate-500" />
           </Button>
 
-          {/* コンテンツエリア (既存のまま) */}
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 shrink-0">
             <div className="flex items-center gap-4">
               <Avatar className="h-14 w-14 border-2 border-white shadow-sm">
-                {!post.isAnonymous && <AvatarImage src={getAvatarUrl(post.id, post.isMyPost)} />}
+                {/* ★修正: avatarSrcを使用 */}
+                {avatarSrc && <AvatarImage src={avatarSrc} />}
                 <AvatarFallback className="bg-slate-200 text-slate-500 text-lg">
                   {post.isAnonymous ? <User className="h-7 w-7" /> : post.labName[0]}
                 </AvatarFallback>

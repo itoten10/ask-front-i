@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { LeftNavigationBar } from "@/components/teacher/LeftNavigationBar";
@@ -11,8 +11,6 @@ import { TeacherMessageView } from "@/components/teacher/TeacherMessageView";
 import { ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-// BACKEND_INTEGRATION: 将来的にはAPIから先生情報を取得
-// API_CONTRACT: GET /api/teacher/me
 const MOCK_TEACHER = {
   id: "T001",
   name: "濵田 理事長",
@@ -25,8 +23,10 @@ const MOCK_TEACHER = {
 export default function TeacherPage() {
   const [activeView, setActiveView] = useState<"home" | "message" | "letter" | "check">("home");
   const [isLeftNavOpen, setIsLeftNavOpen] = useState(false);
+  
+  // ★リセット用キー (ホーム画面を強制再レンダリングするため)
+  const [homeViewKey, setHomeViewKey] = useState(0);
 
-  // フィルターの状態
   const [filters, setFilters] = useState({
     class: "all",
     phase: "all",
@@ -50,6 +50,18 @@ export default function TeacherPage() {
     });
   };
 
+  // ★修正: ナビゲーションハンドラ
+  const handleNavigate = useCallback((view: "home" | "message" | "letter" | "check") => {
+    if (view === "home") {
+      // 既にホームにいる場合でも、キーを更新して強制的に初期画面（表）に戻す
+      // これにより、詳細履歴画面から表画面へ戻ることができる
+      setHomeViewKey(prev => prev + 1);
+    }
+    setActiveView(view);
+    setIsLeftNavOpen(false);
+    setShowScrollTop(false);
+  }, []);
+
   const handleMessageScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (e.currentTarget.scrollTop > 300) {
       setShowScrollTop(true);
@@ -69,11 +81,7 @@ export default function TeacherPage() {
       
       <LeftNavigationBar 
         activeView={activeView} 
-        onNavigate={(view) => {
-          setActiveView(view);
-          setIsLeftNavOpen(false);
-          setShowScrollTop(false);
-        }}
+        onNavigate={handleNavigate} 
       />
       
       <div className="hidden lg:block lg:ml-16 shrink-0 h-full">
@@ -83,7 +91,10 @@ export default function TeacherPage() {
           userAvatar={MOCK_TEACHER.avatar}
           teacherFilters={filters}
           onFilterChange={handleFilterChange}
-          activeView={activeView} 
+          activeView={activeView}
+          // ★修正: 型不整合を防ぐために as any でキャスト
+          // Sidebarは student 用の型定義を持っているため、teacher用の関数を渡すとエラーになる
+          onNavigate={(v) => handleNavigate(v as any)}
         />
       </div>
       
@@ -95,6 +106,8 @@ export default function TeacherPage() {
           activeView={activeView}
           teacherFilters={filters}
           onFilterChange={handleFilterChange}
+          // ★修正: こちらも同様に as any でキャスト
+          onNavigate={(v) => handleNavigate(v as any)}
         />
 
         <main className="flex-1 flex flex-col overflow-hidden bg-slate-50/50">
@@ -102,13 +115,13 @@ export default function TeacherPage() {
             
             {activeView === "home" && (
               <TeacherHomeView 
+                key={homeViewKey} // ★重要: キー変更でリセット
                 filters={filters} 
                 onFilterReset={handleFilterReset}
               />
             )}
             
             {activeView === "message" && (
-              // ★修正: overflow-x-hidden を追加し、横スクロールバーを強制的に非表示にする
               <div 
                 ref={messageContainerRef}
                 onScroll={handleMessageScroll}
