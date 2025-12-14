@@ -20,7 +20,7 @@ interface CarouselListProps {
   subTitle?: string;
   linkText?: string;
   children: React.ReactNode;
-  icon?: string; // 絵文字などを渡す用
+  icon?: string;
 }
 
 export function CarouselList({ 
@@ -34,7 +34,6 @@ export function CarouselList({
   const [current, setCurrent] = React.useState(0);
   const [count, setCount] = React.useState(0);
 
-  // カルーセルの状態を監視（ドット表示用）
   React.useEffect(() => {
     if (!api) return;
 
@@ -64,19 +63,17 @@ export function CarouselList({
         </Button>
       </div>
 
-      {/* カルーセル本体 */}
       <Carousel
         setApi={setApi}
         opts={{
           align: "start",
-          loop: true, // 無限ループ
+          loop: true,
         }}
         className="w-full relative group"
+        // ★修正: 余計な px-12 は削除。これで下のグリッドと幅が揃います。
       >
         <CarouselContent className="-ml-4">
-          {/* 子要素（カード）をここに展開 */}
           {React.Children.map(children, (child) => (
-            // レスポンス幅調整：PC(lg)で3列、さらに広い画面(xl)で4列
             <CarouselItem className="pl-4 basis-full md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
               <div className="h-full p-1">
                 {child}
@@ -85,9 +82,19 @@ export function CarouselList({
           ))}
         </CarouselContent>
         
-        {/* 左右ボタン（通常は隠してホバーで表示、あるいは常時表示など調整可） */}
-        <CarouselPrevious className="hidden md:flex -left-4 w-12 h-12 border-2 border-primary text-primary hover:bg-primary hover:text-white" />
-        <CarouselNext className="hidden md:flex -right-4 w-12 h-12 border-2 border-primary text-primary hover:bg-primary hover:text-white" />
+        {/* 
+           ★修正ポイント: ボタンを内側に配置 (Overlay)
+           - left-2 / right-2 : カードの内側端に配置
+           - z-10 : カードより前面に表示
+           - bg-white/90 : 背景を少し透過させて圧迫感を減らす
+           - shadow-md : 浮かせて視認性を確保
+        */}
+        <CarouselPrevious 
+          className="hidden md:flex left-2 w-10 h-10 border border-slate-200 bg-white/90 text-slate-700 hover:bg-primary hover:text-white hover:border-primary shadow-md transition-all z-10" 
+        />
+        <CarouselNext 
+          className="hidden md:flex right-2 w-10 h-10 border border-slate-200 bg-white/90 text-slate-700 hover:bg-primary hover:text-white hover:border-primary shadow-md transition-all z-10" 
+        />
 
         {/* ドットインジケーター */}
         <div className="flex justify-center gap-2 mt-6">

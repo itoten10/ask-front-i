@@ -2,14 +2,12 @@
 
 "use client";
 
-import { Menu, Bell, Search } from "lucide-react"; // MessageSquareは未使用なら削除可
+import { Menu, Bell, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SidebarContent } from "@/components/layout/Sidebar";
-// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // 未使用なら削除可
 import { useState } from "react";
-// ★追加: 新しいMVPメニューボタンをインポート
 import { MvpMenuButton } from "@/components/common/MvpMenuButton";
 
 interface HeaderProps {
@@ -43,10 +41,13 @@ export function Header({
   return (
     <header className="h-16 border-b border-slate-200 bg-primary text-white flex items-center px-4 justify-between shrink-0 z-30 sticky top-0 shadow-sm">
       <div className="flex items-center gap-3">
-        {/* モバイル用ハンバーガーメニュー */}
+        {/* 
+           ★修正: md:hidden -> lg:hidden 
+           これで「広めのスマホ・タブレット (768px〜1023px)」でもメニューが表示されます
+        */}
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden text-white hover:bg-white/10 -ml-2">
+            <Button variant="ghost" size="icon" className="lg:hidden text-white hover:bg-white/10 -ml-2">
               <Menu className="h-6 w-6" />
             </Button>
           </SheetTrigger>
@@ -88,10 +89,6 @@ export function Header({
       </div>
 
       <div className="flex items-center gap-2">
-        {/* 
-          ★追加: MVP専用メニューボタン
-          これをここに置くことで、どの画面からでも切り替えが可能になります
-        */}
         <MvpMenuButton />
 
         <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 relative">
