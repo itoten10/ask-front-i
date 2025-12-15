@@ -103,6 +103,14 @@ export default function MePage() {
                 管理者ページへ
               </Link>
             )}
+            {(user?.role === "admin" || user?.role === "teacher") && (
+              <Link
+                href="/admin/dashboard"
+                className="rounded-md border border-green-600 bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+              >
+                ダッシュボード
+              </Link>
+            )}
             <Link
               href="/posts"
               className="rounded-md border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"

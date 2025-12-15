@@ -238,7 +238,7 @@ export default function AdminUsersPage() {
   };
 
   const handleDelete = async (userId: number) => {
-    if (!confirm("このユーザーを論理削除します。よろしいですか？")) return;
+    if (!confirm("このユーザーを完全に削除します。関連する投稿や感謝の手紙も全て削除されます。よろしいですか？")) return;
     setError(null);
     setBusy(true);
     const token = await ensureAccessToken();
@@ -548,7 +548,7 @@ export default function AdminUsersPage() {
                           type="button"
                           onClick={() => handleDelete(u.id)}
                           className="rounded-md border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
-                          disabled={u.is_deleted || busy}
+                          disabled={busy}
                         >
                           削除
                         </button>
