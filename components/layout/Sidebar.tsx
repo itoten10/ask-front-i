@@ -20,6 +20,7 @@ import { useState } from "react";
 import { FeatureInfoModal } from "@/components/student/FeatureInfoModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import Image from "next/image";
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
@@ -121,12 +122,18 @@ export function SidebarContent({
          {/* ヘッダーロゴエリア */}
          <div className="px-6 pt-8 pb-4 shrink-0">
           <div className="flex flex-col">
-            <h2 className="text-sm font-bold text-primary tracking-wider mb-1 opacity-90">
+            <h2 className="text-xs font-bold text-primary tracking-widest mb-1 opacity-80 ml-1">
               下妻第一高校
             </h2>
-            <div className="flex items-center gap-2">
-              <Users className="h-8 w-8 text-primary fill-current opacity-80" />
-              <h1 className="text-3xl font-black text-primary tracking-tight">
+            <div className="flex items-center gap-1">
+              <Image 
+                src="/app-icon.svg" 
+                alt="Logo" 
+                width={56} 
+                height={56} 
+                className="w-8 h-8 object-contain opacity-90 shrink-0" 
+              />
+              <h1 className="text-3xl font-black text-primary tracking-tight leading-none">
                 KATARIBA
               </h1>
             </div>
