@@ -1,6 +1,8 @@
+//ask-front-i/components/teacher/EvaluationCriteriaModal.tsx
+
 "use client";
 
-import { X, Info, Flag, Calculator, BookOpen } from "lucide-react";
+import { X, Info, Flag, Calculator, BookOpen, Star, MessageCircle, Mail, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -148,7 +150,7 @@ export function EvaluationCriteriaModal({ open, onClose }: EvaluationCriteriaMod
                 <ul className="list-disc list-inside space-y-2 text-sm text-slate-700">
                   <li>最終投稿から <strong>2週間(14日)以上</strong> 経過している</li>
                   <li>問いの変更回数が <strong>0回</strong> のまま推移している</li>
-                  <li>累計アクション(投稿)数が <strong>10件未満</strong> である</li>
+                  <li>累計アクション(投稿)数が <strong>一定未満</strong> である</li>
                 </ul>
               </div>
             </div>
@@ -162,19 +164,64 @@ export function EvaluationCriteriaModal({ open, onClose }: EvaluationCriteriaMod
             </div>
             <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
               <p className="text-sm text-slate-600 leading-relaxed mb-4">
-                行動ログと感謝の手紙の内容が、以下の7つの能力のどれに該当するかをAIが判別し、該当する場合のみポイントを加算します。
-                <br/>
-                <span className="text-xs text-slate-400 mt-1 block">※初期フェーズでは内容の「質」は考慮せず、行動の有無（量）を可視化します。</span>
+                AIが生徒の「投稿内容（行動ログ）」と「感謝の手紙」を解析し、
+                以下の3つの要素を組み合わせてスコアを算出します。
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-slate-50 p-4 rounded border border-slate-100 flex items-center justify-between group hover:border-primary/30 transition-colors">
-                  <span className="text-sm font-bold text-slate-600">行動ログ（自己評価）</span>
-                  <span className="text-xl font-black text-primary">1 pt <span className="text-xs font-normal text-slate-400">/ 回</span></span>
+              
+              <div className="flex flex-col md:flex-row items-stretch gap-2 mb-4">
+                
+                {/* ① 量の評価 */}
+                <div className="flex-1 bg-slate-50 p-4 rounded-lg border border-slate-100 flex flex-col justify-between group hover:border-primary/30 transition-colors relative z-10">
+                  <div className="flex items-center gap-2 mb-2 text-slate-600">
+                    <MessageCircle className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-bold">行動の量（Quantity）</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-2">AIが検知した能力発揮アクション数</p>
+                  <div className="text-right mt-auto">
+                    <span className="text-xl font-black text-primary">1 pt</span>
+                    <span className="text-xs text-slate-400 ml-1">/ 回</span>
+                  </div>
                 </div>
-                <div className="bg-slate-50 p-4 rounded border border-slate-100 flex items-center justify-between group hover:border-primary/30 transition-colors">
-                  <span className="text-sm font-bold text-slate-600">感謝の手紙（他者評価）</span>
-                  <span className="text-xl font-black text-primary">3 pt <span className="text-xs font-normal text-slate-400">/ 通</span></span>
+
+                {/* × アイコン */}
+                <div className="flex items-center justify-center py-2 md:py-0 md:px-1">
+                  <X className="w-5 h-5 text-slate-300" />
                 </div>
+
+                {/* ② 質の評価 */}
+                <div className="flex-1 bg-slate-50 p-4 rounded-lg border border-slate-100 flex flex-col justify-between group hover:border-primary/30 transition-colors relative z-10">
+                  <div className="flex items-center gap-2 mb-2 text-slate-600">
+                    <Star className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-bold">行動の質（Quality）</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-2">ルーブリック(Lv1~5)に基づく係数</p>
+                  <div className="text-right mt-auto">
+                    <span className="text-xs text-slate-400 mr-1">×</span>
+                    <span className="text-xl font-black text-primary">Coefficient</span>
+                  </div>
+                </div>
+
+                {/* ＋ アイコン */}
+                <div className="flex items-center justify-center py-2 md:py-0 md:px-1">
+                  <Plus className="w-6 h-6 text-slate-300" />
+                </div>
+
+                {/* ③ 手紙の評価 */}
+                <div className="flex-1 bg-slate-50 p-4 rounded-lg border border-slate-100 flex flex-col justify-between group hover:border-primary/30 transition-colors relative z-10">
+                  <div className="flex items-center gap-2 mb-2 text-slate-600">
+                    <Mail className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-bold">感謝の手紙（Letter）</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-2">他者への貢献度評価</p>
+                  <div className="text-right mt-auto">
+                    <span className="text-xl font-black text-primary">1.5 pt</span>
+                    <span className="text-xs text-slate-400 ml-1">/ 通</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-100 rounded text-xs text-slate-500">
+                ※ 総合スコアはこれらの合算値から算出され、クラス内分布などに応じて信号色（赤・黄・緑）が判定されます。
               </div>
             </div>
           </section>
@@ -200,7 +247,7 @@ export function EvaluationCriteriaModal({ open, onClose }: EvaluationCriteriaMod
                         <div key={idx} className="flex items-start gap-4 text-sm">
                           <span className={cn(
                             "font-bold shrink-0 w-12 text-center rounded px-1 py-0.5 text-xs border bg-white",
-                            "border-slate-200 text-slate-500" // 色分けを廃止し、統一感のあるグレーに
+                            "border-slate-200 text-slate-500"
                           )}>
                             Lv.{idx + 1}
                           </span>
