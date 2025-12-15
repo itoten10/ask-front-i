@@ -5,8 +5,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "School Auth",
-  description: "School login portal",
+  title: "KATARIBA",
+  description: "KATARIBAへようこそ",
 };
 
 export default function RootLayout({

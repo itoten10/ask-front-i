@@ -41,10 +41,6 @@ export function Header({
   return (
     <header className="h-16 border-b border-slate-200 bg-primary text-white flex items-center px-4 justify-between shrink-0 z-30 sticky top-0 shadow-sm">
       <div className="flex items-center gap-3">
-        {/* 
-           ★修正: md:hidden -> lg:hidden 
-           これで「広めのスマホ・タブレット (768px〜1023px)」でもメニューが表示されます
-        */}
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="lg:hidden text-white hover:bg-white/10 -ml-2">
@@ -74,7 +70,7 @@ export function Header({
 
         <div className="flex flex-col">
           <h2 className="text-[10px] font-medium opacity-80 leading-tight">下妻第一高校</h2>
-          <h1 className="text-xl font-bold leading-tight">カタリバ</h1>
+          <h1 className="text-xl font-bold leading-tight">KATARIBA</h1>
         </div>
       </div>
 

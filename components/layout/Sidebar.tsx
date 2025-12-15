@@ -127,7 +127,7 @@ export function SidebarContent({
             <div className="flex items-center gap-2">
               <Users className="h-8 w-8 text-primary fill-current opacity-80" />
               <h1 className="text-3xl font-black text-primary tracking-tight">
-                カタリバ
+                KATARIBA
               </h1>
             </div>
           </div>
