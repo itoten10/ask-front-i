@@ -44,16 +44,31 @@ export function CarouselList({
     Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })
   );
 
+  // childrenの数を取得（動的に変わる場合に対応）
+  const childCount = React.Children.count(children);
+
   React.useEffect(() => {
     if (!api) return;
 
-    setCount(api.scrollSnapList().length);
-    setCurrent(api.selectedScrollSnap() + 1);
+    const updateCarousel = () => {
+      setCount(api.scrollSnapList().length);
+      setCurrent(api.selectedScrollSnap() + 1);
+    };
+
+    updateCarousel();
 
     api.on("select", () => {
       setCurrent(api.selectedScrollSnap() + 1);
     });
-  }, [api]);
+
+    // reInitイベントでスナップリストが変わったときに更新
+    api.on("reInit", updateCarousel);
+
+    return () => {
+      api.off("select", () => setCurrent(api.selectedScrollSnap() + 1));
+      api.off("reInit", updateCarousel);
+    };
+  }, [api, childCount]);
 
   return (
     <section className="w-full py-4">

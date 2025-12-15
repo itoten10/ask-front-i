@@ -21,7 +21,7 @@ export interface Post {
   theme?: string;
   phases?: string[];
   questionState?: string;
-  avatarUrl?: string; // 画像指定用
+  avatarUrl?: string | null; // 画像指定用
 }
 
 interface Notice {
@@ -33,17 +33,10 @@ interface Notice {
   url: string;
 }
 
-// デフォルトの画像決定ロジック
-const getAvatarUrl = (id: number, isMyPost: boolean = false) => {
-  if (isMyPost) return "/avatars/01.jpg";
-  const num = ((id % 3) + 2); 
-  return `/avatars/0${num}.jpg`;
-};
-
 // 1. FeaturedPostCard
 export function FeaturedPostCard({ post, onClick }: { post: Post; onClick: () => void }) {
-  // ★修正: post.avatarUrl があればそれを使い、なければ getAvatarUrl を使う
-  const avatarSrc = post.avatarUrl ? post.avatarUrl : (!post.isAnonymous ? getAvatarUrl(post.id, post.isMyPost) : undefined);
+  // DBにavatarUrlがあれば使用、なければnull（ブランク表示）
+  const avatarSrc = post.avatarUrl || null;
 
   return (
     <Card 
@@ -78,10 +71,10 @@ export function FeaturedPostCard({ post, onClick }: { post: Post; onClick: () =>
   );
 }
 
-// 2. NoticeCard (変更なし)
+// 2. NoticeCard
 export function NoticeCard({ notice, qrCodeUrl, onClick }: { notice: Notice; qrCodeUrl?: string; onClick: () => void }) {
   return (
-    <Card 
+    <Card
       onClick={onClick}
       className="h-full border border-slate-200 bg-white transition-all duration-300 hover:border-primary hover:bg-primary/5 hover:shadow-lg cursor-pointer flex flex-col"
     >
@@ -101,7 +94,6 @@ export function NoticeCard({ notice, qrCodeUrl, onClick }: { notice: Notice; qrC
         <div className="flex-1 flex flex-col h-full py-1">
           <div className="flex items-center gap-2 mb-3">
             <Avatar className="h-6 w-6 border border-slate-200">
-              <AvatarImage src={getAvatarUrl(notice.id + 10)} />
               <AvatarFallback className="text-[10px] bg-slate-50">{notice.labName[0]}</AvatarFallback>
             </Avatar>
             <span className="text-xs font-bold text-slate-500">{notice.labName}</span>
@@ -120,16 +112,16 @@ export function NoticeCard({ notice, qrCodeUrl, onClick }: { notice: Notice; qrC
   );
 }
 
-// 3. StandardPostCard (修正)
-export function StandardPostCard({ 
-  post, 
-  isLiked, 
-  onLike, 
+// 3. StandardPostCard
+export function StandardPostCard({
+  post,
+  isLiked,
+  onLike,
   onClick,
   onComment
-}: { 
-  post: Post; 
-  isLiked: boolean; 
+}: {
+  post: Post;
+  isLiked: boolean;
   onLike: (id: number) => void;
   onClick: () => void;
   onComment: () => void;
@@ -137,8 +129,8 @@ export function StandardPostCard({
   const currentLikeCount = post.likeCount + (isLiked && !post.likedByMe ? 1 : 0) - (!isLiked && post.likedByMe ? 1 : 0);
   const postDate = post.isNew ? "12月18日" : "12月10日";
 
-  // ★修正: post.avatarUrl があれば優先するロジックを明確化
-  const avatarSrc = post.avatarUrl ? post.avatarUrl : (!post.isAnonymous ? getAvatarUrl(post.id, post.isMyPost) : undefined);
+  // DBにavatarUrlがあれば使用、なければnull（ブランク表示）
+  const avatarSrc = post.avatarUrl || null;
 
   return (
     <Card 
@@ -163,7 +155,6 @@ export function StandardPostCard({
       <CardContent className="p-6 flex-1 flex flex-col space-y-4">
         <div className="flex items-start gap-3">
           <Avatar className="h-12 w-12 border border-slate-200 bg-white">
-            {/* ★修正: avatarSrcを使用 */}
             {avatarSrc && <AvatarImage src={avatarSrc} />}
             <AvatarFallback className="bg-slate-100 text-slate-400">
               {post.isAnonymous ? <User className="h-6 w-6" /> : post.labName[0]}

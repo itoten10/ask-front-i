@@ -24,6 +24,7 @@ export type MeUser = {
   class_name: string | null;
   gender: string;
   date_of_birth: string | null;
+  avatar_url: string | null;
 };
 
 export async function ensureAccessToken(): Promise<string | null> {

@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-import { apiFetch } from "@/lib/api/client";
-import { clearAccessToken, setAccessToken } from "@/lib/auth/client";
-import { fetchMe, MeUser } from "@/lib/session";
+import { apiFetch } from "@/app/lib/api-client";
+import { clearAccessToken, setAccessToken } from "@/app/lib/auth-client";
+import { fetchMe, MeUser } from "@/app/lib/session";
 
 const roleLabel: Record<MeUser["role"], string> = {
   student: "生徒",
@@ -14,11 +14,15 @@ const roleLabel: Record<MeUser["role"], string> = {
   admin: "管理者",
 };
 
-export default function MePage() {
+function MePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<MeUser | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // ?stay=true パラメータがある場合はこのページに留まる
+  const shouldStay = searchParams.get("stay") === "true";
 
   useEffect(() => {
     const run = async () => {
@@ -61,6 +65,21 @@ export default function MePage() {
 
         const me = await fetchMe();
         setUser(me);
+
+        // ログイン後の自動リダイレクト（?stay=true でない場合）
+        if (!shouldStay) {
+          if (me.role === "student") {
+            router.replace("/student-dashboard");
+            return;
+          } else if (me.role === "teacher") {
+            router.replace("/teacher-dashboard");
+            return;
+          } else if (me.role === "admin") {
+            // 管理者は教師ダッシュボードへ（または管理者ページへ）
+            router.replace("/teacher-dashboard");
+            return;
+          }
+        }
       } catch (err) {
         console.error(err);
         setError("情報の取得に失敗しました。再度ログインしてください。");
@@ -71,7 +90,7 @@ export default function MePage() {
       }
     };
     run();
-  }, [router]);
+  }, [router, shouldStay]);
 
   const handleLogout = async () => {
     try {
@@ -94,22 +113,47 @@ export default function MePage() {
               ログイン中の基本情報を表示しています。
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            {user?.role === "admin" && (
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* 生徒用ダッシュボード */}
+            {user?.role === "student" && (
               <Link
-                href="/admin"
-                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                href="/student-dashboard"
+                className="rounded-md border border-purple-600 bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
               >
-                管理者ページへ
+                生徒ダッシュボードへ
               </Link>
             )}
-            {(user?.role === "admin" || user?.role === "teacher") && (
+            {/* 教師用ダッシュボード */}
+            {user?.role === "teacher" && (
               <Link
-                href="/admin/dashboard"
+                href="/teacher-dashboard"
                 className="rounded-md border border-green-600 bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
               >
-                ダッシュボード
+                教師ダッシュボードへ
               </Link>
+            )}
+            {/* 管理者：両方のダッシュボードへ */}
+            {user?.role === "admin" && (
+              <>
+                <Link
+                  href="/admin"
+                  className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                >
+                  管理者ページへ
+                </Link>
+                <Link
+                  href="/student-dashboard"
+                  className="rounded-md border border-purple-600 bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
+                >
+                  生徒ダッシュボード
+                </Link>
+                <Link
+                  href="/teacher-dashboard"
+                  className="rounded-md border border-green-600 bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+                >
+                  教師ダッシュボード
+                </Link>
+              </>
             )}
             <Link
               href="/posts"
@@ -119,7 +163,7 @@ export default function MePage() {
             </Link>
             <Link
               href="/thanks-letters"
-              className="rounded-md border border-purple-600 bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700"
+              className="rounded-md border border-orange-600 bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
             >
               感謝の手紙へ
             </Link>
@@ -161,5 +205,13 @@ function Info({ label, value }: { label: string; value: string | number }) {
       <dt className="text-xs font-semibold uppercase text-slate-500">{label}</dt>
       <dd className="mt-1 text-sm text-slate-900">{value}</dd>
     </div>
+  );
+}
+
+export default function MePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center"><p className="text-sm text-slate-600">読み込み中...</p></div>}>
+      <MePageContent />
+    </Suspense>
   );
 }

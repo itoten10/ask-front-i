@@ -29,6 +29,9 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   badgeCount?: number;
   userName?: string;
   userAvatar?: string;
+  userGrade?: string | null;
+  userClass?: string | null;
+  userLab?: string;
   teacherFilters?: {
     class: string;
     phase: string;
@@ -36,7 +39,7 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
     order: string;
   };
   onFilterChange?: (key: string, value: string) => void;
-  activeView?: string; 
+  activeView?: string;
 }
 
 interface SidebarContentProps {
@@ -44,28 +47,41 @@ interface SidebarContentProps {
   badgeCount?: number;
   userName?: string;
   userAvatar?: string;
+  userGrade?: string | null;
+  userClass?: string | null;
+  userLab?: string;
   userRole?: "student" | "teacher";
   teacherFilters?: SidebarProps["teacherFilters"];
   onFilterChange?: SidebarProps["onFilterChange"];
-  activeView?: string; 
+  activeView?: string;
 }
 
-export function SidebarContent({ 
-  onNavigate, 
-  badgeCount = 0, 
-  userName, 
-  userAvatar, 
+export function SidebarContent({
+  onNavigate,
+  badgeCount = 0,
+  userName,
+  userAvatar,
+  userGrade,
+  userClass,
+  userLab,
   userRole = "student",
   teacherFilters,
   onFilterChange,
-  activeView 
+  activeView
 }: SidebarContentProps) {
   const [showFeatureInfo, setShowFeatureInfo] = useState(false);
 
+  // 学年・クラスの表示テキストを生成
+  const classText = userGrade && userClass
+    ? `${userGrade}年${userClass}組`
+    : userGrade
+      ? `${userGrade}年`
+      : "2年4組";
+
   const studentData = {
     name: userName || "髙橋 由華",
-    class: "2年4組",
-    lab: "メディアラボ",
+    class: classText,
+    lab: userLab || "メディアラボ",
     avatarUrl: userAvatar || "/avatars/01.jpg",
   };
 

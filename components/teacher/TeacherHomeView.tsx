@@ -272,7 +272,7 @@ export function TeacherHomeView({ filters, onFilterReset }: TeacherHomeViewProps
   };
 
   const handleShowHistory = () => {
-    setSelectedStudentId(null);
+    // studentIdは保持したままhistory表示に切り替え
     setShowHistory(true);
   };
 
@@ -282,11 +282,13 @@ export function TeacherHomeView({ filters, onFilterReset }: TeacherHomeViewProps
   };
 
   // ★重要: ここで分岐
-  if (showHistory && selectedStudentName) {
+  if (showHistory && selectedStudentName && selectedStudentId) {
     return (
-      <StudentHistoryView 
-        studentName={selectedStudentName} 
-        onBack={handleBackToTable} 
+      <StudentHistoryView
+        studentName={selectedStudentName}
+        studentId={selectedStudentId}
+        accessToken={null}
+        onBack={handleBackToTable}
       />
     );
   }
@@ -313,6 +315,7 @@ export function TeacherHomeView({ filters, onFilterReset }: TeacherHomeViewProps
         onClose={() => setSelectedStudentId(null)}
         studentId={selectedStudentId}
         studentName={selectedStudentName}
+        accessToken={null}
         onHistoryClick={handleShowHistory}
       />
 
