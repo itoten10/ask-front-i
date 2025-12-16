@@ -1,12 +1,21 @@
+// app/login/page.tsx
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { signIn, signOut } from "next-auth/react";
+import { User, Eye, EyeOff, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 import { apiFetch } from "@/lib/api/client";
 import { clearAccessToken, setAccessToken } from "@/lib/auth/client";
+import { clearAccessToken as clearAccessTokenApp } from "@/app/lib/auth-client";
+import { FeatureInfoModal } from "@/components/student/FeatureInfoModal";
 
+// --- Types ---
 type LocalLoginResponse = {
   token: {
     access_token: string;
@@ -19,23 +28,70 @@ type MeResponse = {
   role: "student" | "teacher" | "admin";
 };
 
+// --- Utility for Tailwind classes ---
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+// --- Icons ---
+function GoogleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+      <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
+        <path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z" />
+        <path fill="#34A853" d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.424 63.239 -14.754 63.239 Z" />
+        <path fill="#FBBC05" d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.734 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z" />
+        <path fill="#EA4335" d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.424 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z" />
+      </g>
+    </svg>
+  );
+}
+
+// --- Page Component ---
 export default function LoginPage() {
   const router = useRouter();
-  const [loginId, setLoginId] = useState("");
+  const [role, setRole] = useState<"teacher" | "student">("teacher");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [googleError, setGoogleError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  const handleLocalLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  // モーダルの状態管理
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+
+  // ログインページに入ったときに既存のセッションをクリア
+  // 両方のauth-clientモジュールのトークンをクリアする必要がある
+  useEffect(() => {
+    clearAccessToken();
+    clearAccessTokenApp();
+  }, []);
+
+  // ロール切り替え時にID/Passを自動セット（デモ用）
+  useEffect(() => {
+    if (role === "teacher") {
+      setUsername("teacher01");
+      setPassword("teach1234");
+    } else {
+      setUsername("student01");
+      setPassword("test1234");
+    }
+  }, [role]);
+
+  // ローカルログイン処理（実際のAPI呼び出し）
+  const handleLocalLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError(null);
-    const trimmedId = loginId.trim();
+
+    const trimmedId = username.trim();
     const trimmedPass = password.trim();
     if (!trimmedId || !trimmedPass) {
       setLocalError("IDとパスワードを入力してください。");
       return;
     }
+
     setLoading(true);
     try {
       const result = await apiFetch<LocalLoginResponse>(
@@ -68,106 +124,156 @@ export default function LoginPage() {
     }
   };
 
+  // Googleログイン処理
   const handleGoogleLogin = async () => {
     setGoogleError(null);
+    setShowGoogleModal(true);
+  };
+
+  // 実際のGoogleログイン実行
+  const executeGoogleLogin = async () => {
+    setShowGoogleModal(false);
     try {
       // 既存のセッションを必ずクリア（新しい認証フローを確実に開始するため）
       await signOut({ redirect: false });
-      
+
       // sessionStorageもクリア
       sessionStorage.removeItem("temp_token");
       sessionStorage.removeItem("is_2fa_enabled");
       sessionStorage.removeItem("user_id");
-      
+
       // セッションがクリアされるまで少し待機
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // NextAuth.jsのsignIn関数を使用してGoogle認証を開始
-      // OAuthプロバイダーの場合、redirect: trueで自動的にGoogle認証ページにリダイレクトされる
-      // callbackUrlは"/"に設定し、ルートページで2FA状態をチェックする
-      // GoogleProviderの設定でprompt=select_accountが指定されているため、必ずアカウント選択画面が表示される
       await signIn("google", {
         callbackUrl: "/",
-        redirect: true, // OAuthプロバイダーの場合は自動的にリダイレクトされる
+        redirect: true,
       });
     } catch (err) {
       console.error(err);
-      setGoogleError("Googleログインの開始に失敗しました。環境変数を確認してください。");
+      setGoogleError("Googleログインの開始に失敗しました。");
     }
   };
 
+  const handleHelpClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowHelpModal(true);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-4xl px-6 py-16">
-        <h1 className="text-2xl font-semibold text-slate-900">ログイン</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          生徒はGoogleログインのみ利用できます。先生・管理者はローカルIDも利用できます。
-        </p>
+    <>
+      {/* 全体背景 */}
+      <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-[#F5F2F9] p-4 text-[#5D5A88]">
 
-        <div className="mt-10 grid gap-8 lg:grid-cols-2">
-          <section className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">Googleでログイン</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              @gmail.com のみ許可しています。
-            </p>
-            {googleError && (
-              <p className="mt-3 text-sm text-red-600" role="alert">
-                {googleError}
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              className="mt-6 w-full rounded-md bg-blue-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              Googleでログイン
-            </button>
-          </section>
+        {/* 背景画像 */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/background.svg"
+            alt="Background Pattern"
+            fill
+            className="object-cover object-center"
+            priority
+          />
+        </div>
 
-          <section className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">
-              先生・管理者用（ローカルID）
-            </h2>
-            <form
-              className="mt-4 space-y-4"
-              onSubmit={handleLocalLogin}
-              data-testid="local-login-form"
-            >
-              <div>
-                <label
-                  className="block text-sm font-medium text-slate-700"
-                  htmlFor="loginId"
-                >
-                  ログインID
-                </label>
-                <input
-                  type="text"
-                  id="loginId"
-                  name="loginId"
-                  value={loginId}
-                  onChange={(e) => setLoginId(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                  required
+        {/* メインカード */}
+        <div className="z-10 flex h-auto w-full max-w-sm flex-col overflow-hidden rounded-[2.5rem] bg-white/60 backdrop-blur-xl border border-white/50 shadow-2xl md:h-[600px] md:max-w-[950px] md:flex-row">
+
+          {/* 左側：ロゴエリア */}
+          <div className="relative flex w-full flex-col items-center justify-center p-4 md:p-6 md:w-1/2">
+            <div className="relative z-10 flex flex-col items-center">
+              {/* 炎アイコン */}
+              <div className="relative mb-0 h-32 w-32 md:h-[450px] md:w-[450px]">
+                <Image
+                  src="/app-icon.svg"
+                  alt="KATARIBA Icon"
+                  fill
+                  className="object-contain"
+                  priority
                 />
               </div>
-              <div>
-                <label
-                  className="block text-sm font-medium text-slate-700"
-                  htmlFor="password"
-                >
-                  パスワード
+            </div>
+          </div>
+
+          {/* 右側：フォームエリア */}
+          <div className="flex w-full flex-col justify-center p-6 md:w-1/2 md:px-12 md:py-10">
+
+            <h2 className="mb-6 text-center text-3xl font-bold text-[#9370DB]">LOGIN</h2>
+
+            {/* タブ */}
+            <div className="mb-6 flex w-full border-b border-gray-200">
+              <button
+                type="button"
+                onClick={() => setRole("teacher")}
+                className={cn(
+                  "relative flex-1 pb-2 text-center text-sm font-semibold transition-colors duration-300",
+                  role === "teacher"
+                    ? "text-[#9370DB] after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-[#9370DB]"
+                    : "text-gray-400 hover:text-gray-600"
+                )}
+              >
+                Teacher
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole("student")}
+                className={cn(
+                  "relative flex-1 pb-2 text-center text-sm font-semibold transition-colors duration-300",
+                  role === "student"
+                    ? "text-[#9370DB] after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-[#9370DB]"
+                    : "text-gray-400 hover:text-gray-600"
+                )}
+              >
+                Student
+              </button>
+            </div>
+
+            {/* フォーム */}
+            <form onSubmit={handleLocalLogin} className="space-y-5">
+              <div className="group relative">
+                <label htmlFor="username" className="block text-sm font-bold text-[#9370DB] opacity-80">
+                  Username
                 </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                  required
-                />
+                <div className="relative mt-1">
+                  <input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full border-b-2 border-[#9370DB]/30 bg-transparent py-2 pr-8 text-base text-gray-700 placeholder-transparent focus:border-[#9370DB] focus:outline-none transition-colors"
+                    placeholder="Enter your username"
+                    required
+                  />
+                  <User className="absolute right-0 top-1/2 -translate-y-1/2 h-5 w-5 text-[#9370DB] opacity-70" />
+                </div>
               </div>
 
+              <div className="group relative">
+                <label htmlFor="password" className="block text-sm font-bold text-[#9370DB] opacity-80">
+                  Password
+                </label>
+                <div className="relative mt-1">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full border-b-2 border-[#9370DB]/30 bg-transparent py-2 pr-8 text-base text-gray-700 placeholder-transparent focus:border-[#9370DB] focus:outline-none transition-colors"
+                    placeholder="Enter your password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 text-[#9370DB] opacity-70 hover:opacity-100 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* エラーメッセージ */}
               {localError && (
                 <p className="text-sm text-red-600" role="alert">
                   {localError}
@@ -177,14 +283,119 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+                className="mt-4 w-full rounded-full bg-[#9370DB] py-3 text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-70"
               >
-                {loading ? "ログイン中..." : "ログイン"}
+                {loading ? "Logging in..." : "Login"}
               </button>
             </form>
-          </section>
+
+            <div className="mt-4">
+              {googleError && (
+                <p className="text-sm text-red-600 mb-2" role="alert">
+                  {googleError}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-[#9E9E9E] py-3 text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95"
+              >
+                <GoogleIcon className="h-5 w-5 bg-white rounded-full p-0.5" />
+                <span className="text-sm font-medium">Sign in with Google</span>
+              </button>
+            </div>
+
+            <div className="mt-6 flex flex-col items-end gap-1 text-sm font-semibold text-[#9370DB]">
+              <button onClick={handleHelpClick} className="hover:underline opacity-80 hover:opacity-100">
+                Forgot
+              </button>
+              <button onClick={handleHelpClick} className="hover:underline opacity-80 hover:opacity-100">
+                Help
+              </button>
+            </div>
+
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Forgot / Help 用モーダル */}
+      <FeatureInfoModal
+        open={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
+        title="ログイン案内"
+        description={
+          <div className="flex flex-col gap-4 text-left">
+            <div className="rounded-lg bg-purple-50 border border-purple-100 p-4">
+              <p className="text-sm text-purple-900 leading-relaxed">
+                <span className="font-bold text-purple-700">デモ用ID・パスワード</span>が事前に入力されています。
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-slate-600">
+                上部の <span className="font-bold text-[#9370DB]">Teacher / Student</span> タブを切り替えて、<br />
+                そのままログインボタンを押してください。
+              </p>
+            </div>
+          </div>
+        }
+      />
+
+      {/* Google Login 用モーダル */}
+      <FeatureInfoModal
+        open={showGoogleModal}
+        onClose={() => setShowGoogleModal(false)}
+        title="Googleログインについて"
+        description={
+          <div className="flex flex-col gap-4 text-left">
+            {/* 警告・条件エリア */}
+            <div className="rounded-lg bg-purple-50 border border-purple-200 p-4 shadow-sm">
+              <h4 className="font-bold text-purple-800 mb-2 flex flex-col items-center gap-2 text-sm text-center">
+                <span className="flex items-center gap-2 justify-center w-full">
+                  <AlertTriangle className="h-4 w-4" />
+                  ログインに必要な下記条件を
+                </span>
+                全て満たす必要があります
+              </h4>
+              <ul className="list-inside space-y-1 text-sm text-purple-900/80">
+                <li className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-purple-400 flex-shrink-0" />
+                  <span>管理者による事前のユーザー登録</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-purple-400 flex-shrink-0" />
+                  <span>学校指定のGoogleアカウント</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-purple-400 flex-shrink-0" />
+                  <span>Authenticator（2要素）認証</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* アクション誘導エリア */}
+            <div className="flex flex-col items-center gap-2 py-2">
+              <div className="flex items-center gap-2 text-[#9370DB] font-bold">
+                <CheckCircle2 className="h-5 w-5" />
+                <span>まずはデモ用IDでお試しください</span>
+              </div>
+              <p className="text-xs text-slate-500 text-center">
+                フォームに入力済みのID/パスワードで<br />
+                すぐにログイン可能です。<br />
+                MFA認証はデモIDでログイン後体験できます。
+              </p>
+            </div>
+
+            {/* Googleログイン実行ボタン */}
+            <button
+              type="button"
+              onClick={executeGoogleLogin}
+              className="mt-2 w-full rounded-full bg-[#9370DB] py-3 text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95"
+            >
+              それでもGoogleでログインする
+            </button>
+          </div>
+        }
+      />
+    </>
   );
 }

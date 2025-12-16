@@ -129,7 +129,7 @@ export default function TwoFAVerifyPage() {
                   const value = e.target.value.replace(/\D/g, "").slice(0, 6);
                   setCode(value);
                 }}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
                 placeholder="000000"
                 maxLength={6}
                 required
@@ -146,7 +146,7 @@ export default function TwoFAVerifyPage() {
             <button
               type="submit"
               disabled={loading || code.length !== 6}
-              className="mt-6 w-full rounded-md bg-blue-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              className="mt-6 w-full rounded-md bg-purple-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50 transition-colors"
             >
               {loading ? "検証中..." : "認証する"}
             </button>
