@@ -61,6 +61,7 @@ export default function LoginPage() {
   // モーダルの状態管理
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [showStudentDemoModal, setShowStudentDemoModal] = useState(false);
 
   // ログインページに入ったときに既存のセッションをクリア
   // 両方のauth-clientモジュールのトークンをクリアする必要がある
@@ -80,7 +81,7 @@ export default function LoginPage() {
     }
   }, [role]);
 
-  // ローカルログイン処理（実際のAPI呼び出し）
+  // ローカルログイン処理（フォーム送信時）
   const handleLocalLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError(null);
@@ -91,6 +92,24 @@ export default function LoginPage() {
       setLocalError("IDとパスワードを入力してください。");
       return;
     }
+
+    // studentの場合はデモ用モーダルを表示
+    if (role === "student") {
+      setShowStudentDemoModal(true);
+      return;
+    }
+
+    // teacherの場合は直接ログイン実行
+    await executeLocalLogin();
+  };
+
+  // 実際のローカルログイン処理
+  const executeLocalLogin = async () => {
+    setShowStudentDemoModal(false);
+    setLocalError(null);
+
+    const trimmedId = username.trim();
+    const trimmedPass = password.trim();
 
     setLoading(true);
     try {
@@ -392,6 +411,68 @@ export default function LoginPage() {
               className="mt-2 w-full rounded-full bg-[#9370DB] py-3 text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95"
             >
               それでもGoogleでログインする
+            </button>
+          </div>
+        }
+      />
+
+      {/* Student デモログイン用モーダル */}
+      <FeatureInfoModal
+        open={showStudentDemoModal}
+        onClose={() => setShowStudentDemoModal(false)}
+        title="デモ用ログインについて"
+        description={
+          <div className="flex flex-col gap-4 text-left">
+            {/* 説明エリア */}
+            <div className="rounded-lg bg-purple-50 border border-purple-200 p-4 shadow-sm">
+              <h4 className="font-bold text-purple-800 mb-2 flex flex-col items-center gap-2 text-sm text-center">
+                <span className="flex items-center gap-2 justify-center w-full">
+                  <AlertTriangle className="h-4 w-4" />
+                  これはデモ用ログインです
+                </span>
+              </h4>
+              <p className="text-sm text-purple-900/80 text-center">
+                本来、生徒はGoogle認証のみでログインします。
+              </p>
+            </div>
+
+            {/* 本番運用の説明 */}
+            <div className="rounded-lg bg-slate-50 border border-slate-200 p-4">
+              <h4 className="font-bold text-slate-700 mb-2 text-sm text-center">
+                本番環境でのログイン方法
+              </h4>
+              <ul className="list-inside space-y-1 text-sm text-slate-600">
+                <li className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-slate-400 flex-shrink-0" />
+                  <span>学校指定のGoogleアカウント</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-slate-400 flex-shrink-0" />
+                  <span>Authenticator（2要素）認証</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* アクション誘導エリア */}
+            <div className="flex flex-col items-center gap-2 py-2">
+              <div className="flex items-center gap-2 text-[#9370DB] font-bold">
+                <CheckCircle2 className="h-5 w-5" />
+                <span>デモ機能をお試しください</span>
+              </div>
+              <p className="text-xs text-slate-500 text-center">
+                入力済みのデモ用ID/パスワードで<br />
+                生徒向け機能を体験できます。
+              </p>
+            </div>
+
+            {/* デモログイン実行ボタン */}
+            <button
+              type="button"
+              onClick={executeLocalLogin}
+              disabled={loading}
+              className="mt-2 w-full rounded-full bg-[#9370DB] py-3 text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-95 disabled:opacity-70"
+            >
+              {loading ? "ログイン中..." : "デモ用IDでログインする"}
             </button>
           </div>
         }
