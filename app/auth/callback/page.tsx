@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api/client";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -53,6 +54,22 @@ export default function AuthCallbackPage() {
               console.error("Token exchange error:", err);
             }
 
+            // ユーザー情報を取得してロールに応じたダッシュボードに直接遷移
+            const storedToken = localStorage.getItem("access_token");
+            if (storedToken) {
+              try {
+                type MeResponse = { role: "student" | "teacher" | "admin" };
+                const me = await apiFetch<MeResponse>("/users/me", {}, storedToken);
+                if (me.role === "student") {
+                  router.replace("/student-dashboard");
+                } else {
+                  router.replace("/teacher-dashboard");
+                }
+                return;
+              } catch {
+                // ユーザー情報取得に失敗した場合はmeページへ
+              }
+            }
             router.replace("/me");
             return;
           }

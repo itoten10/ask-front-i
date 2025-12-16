@@ -20,6 +20,7 @@ function MePageContent() {
   const [user, setUser] = useState<MeUser | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // ?stay=true パラメータがある場合はこのページに留まる
   const shouldStay = searchParams.get("stay") === "true";
@@ -68,6 +69,7 @@ function MePageContent() {
 
         // ログイン後の自動リダイレクト（?stay=true でない場合）
         if (!shouldStay) {
+          setIsRedirecting(true);
           if (me.role === "student") {
             router.replace("/student-dashboard");
             return;
@@ -102,6 +104,15 @@ function MePageContent() {
       router.replace("/login");
     }
   };
+
+  // リダイレクト中またはローディング中はローディング画面を表示
+  if (isRedirecting || loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <p className="text-sm text-slate-600">読み込み中...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">

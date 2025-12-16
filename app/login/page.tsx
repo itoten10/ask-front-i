@@ -15,6 +15,10 @@ type LocalLoginResponse = {
   };
 };
 
+type MeResponse = {
+  role: "student" | "teacher" | "admin";
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const [loginId, setLoginId] = useState("");
@@ -42,7 +46,19 @@ export default function LoginPage() {
         }
       );
       setAccessToken(result.token.access_token);
-      router.push("/me");
+
+      // ユーザー情報を取得してロールに応じたダッシュボードに直接遷移
+      try {
+        const me = await apiFetch<MeResponse>("/users/me", {}, result.token.access_token);
+        if (me.role === "student") {
+          router.push("/student-dashboard");
+        } else {
+          router.push("/teacher-dashboard");
+        }
+      } catch {
+        // ユーザー情報取得に失敗した場合はmeページへ
+        router.push("/me");
+      }
     } catch (err) {
       console.error(err);
       clearAccessToken();

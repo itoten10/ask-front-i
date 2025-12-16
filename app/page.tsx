@@ -5,6 +5,7 @@
 import Image from "next/image";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api/client";
 
 export default function Home() {
   const router = useRouter();
@@ -17,9 +18,25 @@ export default function Home() {
         const sessionResponse = await fetch("/api/auth/session");
         if (sessionResponse.ok) {
           const session = await sessionResponse.json();
-          // 通常の認証済みユーザーは/meにリダイレクト
+          // 通常の認証済みユーザーはロールに応じたダッシュボードにリダイレクト
           // temp_tokenがある場合は認証フロー中なので、そのまま処理を続行
           if (session?.user) {
+            // ローカルストレージのトークンを使ってユーザー情報を取得
+            const storedToken = localStorage.getItem("access_token");
+            if (storedToken) {
+              try {
+                type MeResponse = { role: "student" | "teacher" | "admin" };
+                const me = await apiFetch<MeResponse>("/users/me", {}, storedToken);
+                if (me.role === "student") {
+                  router.replace("/student-dashboard");
+                } else {
+                  router.replace("/teacher-dashboard");
+                }
+                return;
+              } catch {
+                // ユーザー情報取得に失敗した場合はmeページへ
+              }
+            }
             router.replace("/me");
             return;
           }

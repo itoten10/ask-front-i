@@ -28,7 +28,7 @@ import {
 // Types
 // ==========================================
 type AbilityCode =
-  | "setting" | "gathering" | "involving" | "communication"
+  | "problem_setting" | "information_gathering" | "involvement" | "communication"
   | "humility" | "execution" | "completion";
 
 interface StudentDetailSheetProps {
@@ -42,18 +42,18 @@ interface StudentDetailSheetProps {
   onHistoryClick: () => void;
 }
 
-// 能力コードと日本語名のマッピング
+// 能力コードと日本語名のマッピング（DBのコードに合わせる）
 const ABILITY_LABELS: Record<string, string> = {
-  setting: "課題設定",
-  gathering: "情報収集",
-  involving: "巻込力",
+  problem_setting: "課題設定",
+  information_gathering: "情報収集",
+  involvement: "巻込力",
   communication: "対話力",
   humility: "謙虚さ",
   execution: "実行力",
   completion: "完遂力",
 };
 
-const ABILITY_ORDER: AbilityCode[] = ["setting", "gathering", "involving", "communication", "humility", "execution", "completion"];
+const ABILITY_ORDER: AbilityCode[] = ["problem_setting", "information_gathering", "involvement", "communication", "humility", "execution", "completion"];
 
 const chartConfig = {
   score: {
@@ -124,17 +124,12 @@ export function StudentDetailSheet({
     }
   }, [isOpen, studentId, fetchAbilityData]);
 
-  // スコアを5段階に正規化（最大値を5として計算）
-  const normalizeScore = (score: number): number => {
-    // スコアが10以上なら5、0以下なら0、それ以外は比例計算
-    if (score >= 10) return 5;
-    if (score <= 0) return 0;
-    return Math.round((score / 10) * 5 * 10) / 10; // 0-5の範囲で小数点1桁
-  };
+  // レーダーチャートの最大値（データ範囲: 0〜77程度）
+  const CHART_MAX = 80;
 
   const chartData = abilityData ? ABILITY_ORDER.map(code => ({
     subject: ABILITY_LABELS[code],
-    score: normalizeScore(abilityData[code] || 0),
+    score: Math.round((abilityData[code] || 0) * 10) / 10, // 小数点1桁に丸める
   })) : [];
 
   const gradeClass = studentGrade && studentClass
@@ -213,7 +208,7 @@ export function StudentDetailSheet({
                           dataKey="subject"
                           tick={{ fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: '600' }}
                         />
-                        <PolarRadiusAxis domain={[0, 5]} tickCount={6} tick={false} axisLine={false} />
+                        <PolarRadiusAxis domain={[0, CHART_MAX]} tickCount={5} tick={false} axisLine={false} />
                         <Radar
                           dataKey="score"
                           fill="var(--color-score)"
