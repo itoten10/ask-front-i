@@ -3,11 +3,17 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Header } from "@/components/layout/Header";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { LeftNavigationBar } from "@/components/teacher/LeftNavigationBar";
-import { TeacherHomeView } from "@/components/teacher/TeacherHomeView";
-import { TeacherMessageView } from "@/components/teacher/TeacherMessageView";
+// ★ダミー用パス
+import { Header } from "@/components/layout-dummy/Header";
+import { Sidebar } from "@/components/layout-dummy/Sidebar";
+import { LeftNavigationBar } from "@/components/teacher-dummy/LeftNavigationBar";
+import { TeacherHomeView } from "@/components/teacher-dummy/TeacherHomeView";
+import { TeacherMessageView } from "@/components/teacher-dummy/TeacherMessageView";
+
+// ★ここもダミー用からインポートしているか確認（もしエラーが出たら合わせてね）
+import { StudentDetailSheet } from "@/components/teacher-dummy/StudentDetailSheet";
+import { StudentHistoryView } from "@/components/teacher-dummy/StudentHistoryView"; 
+
 import { ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -24,7 +30,6 @@ export default function TeacherPage() {
   const [activeView, setActiveView] = useState<"home" | "message" | "letter" | "check">("home");
   const [isLeftNavOpen, setIsLeftNavOpen] = useState(false);
   
-  // ★リセット用キー (ホーム画面を強制再レンダリングするため)
   const [homeViewKey, setHomeViewKey] = useState(0);
 
   const [filters, setFilters] = useState({
@@ -36,6 +41,11 @@ export default function TeacherPage() {
 
   const [showScrollTop, setShowScrollTop] = useState(false);
   const messageContainerRef = useRef<HTMLDivElement>(null);
+  
+  // 詳細シート・履歴表示用のState（TeacherHomeViewからリフトアップが必要な場合があるけど、今回はダミーなので簡易的に）
+  // ※本来はContextかReduxで管理するか、TeacherHomeView内で完結させる
+  // 今回の構成だとTeacherHomeViewの中にDetailSheetがあるはずなので、Page側には不要かもだけど
+  // もしPage側で管理する構成に変えていたら以下を使ってね
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -50,11 +60,8 @@ export default function TeacherPage() {
     });
   };
 
-  // ★修正: ナビゲーションハンドラ
   const handleNavigate = useCallback((view: "home" | "message" | "letter" | "check") => {
     if (view === "home") {
-      // 既にホームにいる場合でも、キーを更新して強制的に初期画面（表）に戻す
-      // これにより、詳細履歴画面から表画面へ戻ることができる
       setHomeViewKey(prev => prev + 1);
     }
     setActiveView(view);
@@ -92,8 +99,6 @@ export default function TeacherPage() {
           teacherFilters={filters}
           onFilterChange={handleFilterChange}
           activeView={activeView}
-          // ★修正: 型不整合を防ぐために as any でキャスト
-          // Sidebarは student 用の型定義を持っているため、teacher用の関数を渡すとエラーになる
           onNavigate={(v) => handleNavigate(v as any)}
         />
       </div>
@@ -106,7 +111,6 @@ export default function TeacherPage() {
           activeView={activeView}
           teacherFilters={filters}
           onFilterChange={handleFilterChange}
-          // ★修正: こちらも同様に as any でキャスト
           onNavigate={(v) => handleNavigate(v as any)}
         />
 
@@ -115,7 +119,7 @@ export default function TeacherPage() {
             
             {activeView === "home" && (
               <TeacherHomeView 
-                key={homeViewKey} // ★重要: キー変更でリセット
+                key={homeViewKey} 
                 filters={filters} 
                 onFilterReset={handleFilterReset}
               />
@@ -127,7 +131,8 @@ export default function TeacherPage() {
                 onScroll={handleMessageScroll}
                 className="h-full overflow-y-auto overflow-x-hidden pr-2 scroll-smooth"
               >
-                 <TeacherMessageView accessToken={null} />
+                 {/* ★修正: accessToken={null} を削除しました！ */}
+                 <TeacherMessageView />
               </div>
             )}
             
