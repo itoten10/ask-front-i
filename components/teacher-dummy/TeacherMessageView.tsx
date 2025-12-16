@@ -1,25 +1,18 @@
-// ask-front-i/app/student/page.tsx
+// ask-front-i/components/teacher/TeacherMessageView.tsx
 
 "use client";
 
-import { Header } from "@/components/layout-dummy/Header";
-import { Sidebar } from "@/components/layout-dummy/Sidebar";
 import { CarouselList } from "@/components/student-dummy/CarouselList";
-import { PostForm } from "@/components/student-dummy/PostForm";
-import { FeaturedPostCard, NoticeCard, StandardPostCard } from "@/components/student-dummy/StudentPostCards";
 import { PostDetailModal } from "@/components/student-dummy/PostDetailModal";
 import { FeatureInfoModal } from "@/components/student-dummy/FeatureInfoModal";
-import { ThanksLetterView } from "@/components/student-dummy/ThanksLetterView";
-// UIコンポーネントは共通のままでOK
-import { Button } from "@/components/ui/button";
-
-import { Grip, ArrowUp } from "lucide-react"; 
-import { useState, useEffect, useRef } from "react";
+import { FeaturedPostCard, NoticeCard, StandardPostCard } from "@/components/student-dummy/StudentPostCards";
+import { useState, useEffect } from "react";
+import { Grip } from "lucide-react";
 import QRCode from "qrcode";
 
 // ==========================================
 // Types
-// [Backend Integration] 本来は /types/index.ts などで定義し、APIのレスポンス型と合わせる
+// BACKEND_INTEGRATION: studentページと同様の型定義。本来は共通型定義ファイルに移動推奨
 // ==========================================
 interface Post {
   id: number;
@@ -31,7 +24,7 @@ interface Post {
   isMyPost?: boolean;
   likeCount: number;
   likedByMe?: boolean;
-  isNew?: boolean; 
+  isNew?: boolean;
   theme?: string;
   phases?: string[];
   questionState?: string;
@@ -46,22 +39,19 @@ interface Notice {
   url: string;
 }
 
-export default function StudentPage() {
+export function TeacherMessageView() {
   const [qrCodes, setQrCodes] = useState<Record<number, string>>({});
   
-  // 画面切り替え用のState ('home' = 投稿一覧, 'thanks' = 感謝の手紙)
-  const [currentView, setCurrentView] = useState<"home" | "thanks">("home");
-
-  // 感謝の手紙の残り枚数 (初期値3)
-  const [thanksCount, setThanksCount] = useState(3);
-
-  // 投稿完了時にスクロールするためのRef
-  const allPostsRef = useRef<HTMLDivElement>(null);
+  // モーダル制御用State
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [showNoticeInfo, setShowNoticeInfo] = useState(false);
+  const [showCommentInfo, setShowCommentInfo] = useState(false);
 
   // ==========================================
-  // Dummy Data
-  // [Backend Integration] ここは将来的に API (/api/posts/featured 等) から取得する
+  // Data (Student Pageと同じデータを同期)
+  // BACKEND_INTEGRATION: API(/api/posts)から取得する際は、生徒用とは異なるフィルタリング(全クラス表示など)が入る可能性あり
   // ==========================================
+  
   const featuredPosts: Post[] = [
     { id: 1, labName: "メディアラボ", authorName: "佐藤 優", content: "文化祭のポスターデザインについて、色使いの心理的効果を調べてみた。青色は信頼感を与えるらしい。", isViewedByTeacher: true, likeCount: 12, theme: "色が人に与える心理的影響", phases: ["調査・分析"], questionState: "問いの検証が進んだ" },
     { id: 2, labName: "工学ラボ", authorName: "匿名", content: "3Dプリンターのフィラメント詰まりを解消する方法を試行錯誤した結果、温度設定が鍵だとわかった。", isViewedByTeacher: true, isAnonymous: true, likeCount: 8, theme: "3Dプリンターの出力安定化", phases: ["実験・調査"], questionState: "周辺の準備作業をした" },
@@ -73,7 +63,6 @@ export default function StudentPage() {
     { id: 8, labName: "社会科学ゼミ", authorName: "山田 次郎", content: "SNSの利用時間と学習意欲の相関関係についてアンケートを作成中。Googleフォーム便利。", isViewedByTeacher: true, likeCount: 9, theme: "SNSと学力の相関", phases: ["実験・調査"], questionState: "周辺の準備作業をした" },
   ];
 
-  // [Backend Integration] ここは将来的に API (/api/posts 等) から取得する
   const allPostsDummy: Post[] = [
     { id: 101, labName: "メディアラボ", authorName: "髙橋 由華", content: "運動は本当にストレス発散に効果的なのか？\n\n【何をやってみた？】課題設定のために、3つのテーマについて現状のリサーチがどこまで進んでいるかをAIと論文などを使いながら調査しました。\n\n【なぜそれをやってみた？】AIを使った方が抜け漏れがないと思いました。答えが出ているテーマだと良くないと聞いたので。", isViewedByTeacher: true, isMyPost: true, likeCount: 13, theme: "ストレスと運動の科学的関係", phases: ["テーマ設定", "情報収集"], questionState: "問いが深まった・変化した" },
     { id: 102, labName: "地域ビジネスゼミ", authorName: "田中 太郎", content: "商店街のシャッター通り化についての意識調査アンケートを実施しました。\n\n予想以上に「駐車場がないから行かない」という回答が多く、車社会の地方都市ならではの課題だと感じました。次は空き地を駐車場として活用している事例がないか調べてみます。", isViewedByTeacher: true, isMyPost: false, likeCount: 5, theme: "地方都市における商店街活性化", phases: ["実験・調査", "分析"], questionState: "問いが深まった・変化した" },
@@ -97,7 +86,6 @@ export default function StudentPage() {
     { id: 120, labName: "メディアラボ", authorName: "斎藤 飛鳥", content: "学校のPR動画の絵コンテ作成。\n\n「青春」をテーマに、屋上や体育館でのシーンを入れたい。BGMの著作権フリー素材探しに苦戦中。", isViewedByTeacher: true, isMyPost: false, likeCount: 7, theme: "学校ブランディング", phases: ["発表準備"], questionState: "周辺の準備作業をした" },
   ];
 
-  // [Backend Integration] ここは将来的に API (/api/notices 等) から取得する
   const notices: Notice[] = [
     { id: 1, date: "10/10", labName: "メディアラボ", title: "○○に関するアンケートのご協力お願いします！", deadline: "12/12", url: "https://forms.google.com/example1" },
     { id: 2, date: "10/15", labName: "工学ラボ", title: "ロボットコンテストの観戦者を募集しています", deadline: "12/17", url: "https://example.com/robot-contest" },
@@ -108,19 +96,12 @@ export default function StudentPage() {
   ];
 
   // State管理
+  // NOTE(MOCK): 先生が投稿を「いいね」した状態などを保持するためのローカルステート
   const [posts, setPosts] = useState<Post[]>(allPostsDummy);
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
-  
-  // モーダル用State
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [showNoticeInfo, setShowNoticeInfo] = useState(false); 
-  const [showCommentInfo, setShowCommentInfo] = useState(false); 
-
-  // スクロールトップボタンの表示切替用
-  const [showScrollTop, setShowScrollTop] = useState(false);
-  const mainScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // QRコード生成（StudentPageと同じロジック）
     const generateQRs = async () => {
       const codes: Record<number, string> = {};
       for (const notice of notices) {
@@ -134,7 +115,7 @@ export default function StudentPage() {
     };
     generateQRs();
 
-    // [Backend Integration] ユーザーがいいねした投稿IDリストをAPIから取得してセットする
+    // 初期いいね状態の設定
     const initialLiked = new Set<number>();
     posts.forEach(post => {
       if (post.likedByMe) initialLiked.add(post.id);
@@ -142,48 +123,9 @@ export default function StudentPage() {
     setLikedPosts(initialLiked);
   }, []);
 
-  // 投稿ハンドラ
-  const handlePostSubmit = (data: any) => {
-    // TODO(BE): Implement Zod validation before sending
-    // const result = postSchema.safeParse(data);
-    // if (!result.success) { ... handle errors ... }
-
-    // [Backend Integration] ここで API (POST /api/posts) を叩いてDBに保存する
-    // const response = await fetch('/api/posts', { 
-    //   method: 'POST', 
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(data) 
-    // });
-    
-    // MVP: フロントエンドのStateのみ更新（リロードで消える）
-    const newPost: Post = {
-      id: Date.now(),
-      labName: "メディアラボ", 
-      authorName: data.isAnonymous ? "匿名" : "髙橋 由華",
-      content: data.content,
-      // NOTE(SECURITY): Sanitize input content to prevent XSS if displaying as HTML
-      isViewedByTeacher: false,
-      isAnonymous: data.isAnonymous,
-      isMyPost: true,
-      likeCount: 0,
-      isNew: true,
-      phases: data.phases,
-      theme: data.theme,
-      questionState: data.questionState
-    };
-    setPosts([newPost, ...posts]);
-
-    // ★追加: 投稿完了後に全投稿エリア（自分の投稿が反映される場所）まで自動スクロール
-    // ユーザーに「投稿できた感」を与える演出
-    setTimeout(() => {
-      if (allPostsRef.current) {
-        allPostsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 100); // モーダルが閉じた後のタイミング調整
-  };
-
+  // 先生によるいいね機能（MVPではローカルのみ反映）
   const handleLike = (postId: number) => {
-    // [Backend Integration] ここで API (POST/DELETE /api/posts/{id}/like) を叩く
+    // TODO(BE): 先生によるいいねAPIの実装
     const newLiked = new Set(likedPosts);
     if (newLiked.has(postId)) {
       newLiked.delete(postId);
@@ -193,45 +135,22 @@ export default function StudentPage() {
     setLikedPosts(newLiked);
   };
 
-  // スクロールイベントハンドラ
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (e.currentTarget.scrollTop > 300) {
-      setShowScrollTop(true);
-    } else {
-      setShowScrollTop(false);
-    }
-  };
-
-  // トップへ戻る関数
-  const scrollToTop = () => {
-    if (mainScrollRef.current) {
-      mainScrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
-  // 画面遷移ハンドラ
-  const handleNavigate = (view: "home" | "thanks") => {
-    setCurrentView(view);
-  };
-
-  // 手紙送信完了時のハンドラ
-  const handleThanksComplete = () => {
-    setThanksCount((prev) => Math.max(0, prev - 1));
+  const handlePostClick = (post: Post) => {
+    setSelectedPost(post);
   };
 
   return (
-    <div className="flex h-screen bg-background font-sans overflow-hidden">
-      
-      {/* 詳細モーダル (クリック時に表示) */}
-      <PostDetailModal 
-        post={selectedPost} 
-        isOpen={!!selectedPost} 
-        onClose={() => setSelectedPost(null)} 
+    <div className="space-y-1 pb-24 lg:pb-12">
+      {/* 投稿詳細モーダル */}
+      <PostDetailModal
+        post={selectedPost}
+        isOpen={!!selectedPost}
+        onClose={() => setSelectedPost(null)}
         isLiked={selectedPost ? likedPosts.has(selectedPost.id) : false}
         onLike={handleLike}
       />
 
-      {/* 掲示板用機能のお知らせモーダル */}
+      {/* 掲示板用お知らせモーダル */}
       <FeatureInfoModal 
         open={showNoticeInfo} 
         onClose={() => setShowNoticeInfo(false)}
@@ -239,7 +158,7 @@ export default function StudentPage() {
         description={<>MVP内では詳細は非表示ですが、<br/>フェーズ2で各ゼミのアンケートなどを<br/>ここに反映予定です。</>}
       />
 
-      {/* コメント用機能のお知らせモーダル */}
+      {/* コメント用お知らせモーダル */}
       <FeatureInfoModal
         open={showCommentInfo}
         onClose={() => setShowCommentInfo(false)}
@@ -247,94 +166,57 @@ export default function StudentPage() {
         description={<>MVP内ではコメント機能は非表示ですが、<br /><strong>投稿数UP</strong>や<strong>生徒同士の情報共有</strong>を<br />促進するためにフェーズ2以降で実装予定です。</>}
       />
 
-      {/* サイドバー: badgeCount を渡す */}
-      <Sidebar 
-        userRole="student" 
-        className="hidden md:flex flex-col h-full shrink-0" 
-        onNavigate={handleNavigate}
-        badgeCount={thanksCount} 
-      />
-
-      <div className="flex-1 flex flex-col h-full min-w-0 relative">
-        {/* ヘッダー: badgeCount を渡す (スマホメニュー用) */}
-        <Header onNavigate={handleNavigate} badgeCount={thanksCount} />
-
-        <main 
-          id="student-main-scroll"
-          ref={mainScrollRef}
-          onScroll={handleScroll}
-          className={`flex-1 overflow-y-auto bg-slate-50/50 scroll-smooth ${currentView === 'home' ? 'p-4 md:p-8' : 'p-0'}`}
+      {/* 注目の投稿 */}
+      <section>
+        <CarouselList
+          title='今週注目の "やってみた"'
+          subTitle="※AIが自動でピックアップしています"
+          icon="👏"
         >
-          {currentView === "home" ? (
-            // Home (Feed) View
-            <div className="w-full max-w-[1600px] mx-auto space-y-1 pb-20 animate-in fade-in slide-in-from-left-4 duration-500"> 
-              <PostForm onSubmit={handlePostSubmit} />
+          {featuredPosts.map((post) => (
+            <FeaturedPostCard key={post.id} post={post} onClick={() => handlePostClick(post)} />
+          ))}
+        </CarouselList>
+      </section>
 
-              <CarouselList 
-                title="今週注目の &quot;やってみた&quot;" 
-                subTitle="※AIが自動でピックアップしています"
-                icon="👏"
-              >
-                {featuredPosts.map((post) => (
-                  <FeaturedPostCard key={post.id} post={post} onClick={() => setSelectedPost(post)} />
-                ))}
-              </CarouselList>
+      {/* 校内掲示板 */}
+      <section>
+        <CarouselList title="校内掲示板" icon="📋">
+          {notices.map((notice) => (
+            <NoticeCard 
+              key={notice.id} 
+              notice={notice} 
+              qrCodeUrl={qrCodes[notice.id]}
+              onClick={() => setShowNoticeInfo(true)}
+            />
+          ))}
+        </CarouselList>
+      </section>
 
-              <CarouselList title="校内掲示板" icon="📋">
-                {notices.map((notice) => (
-                  <NoticeCard key={notice.id} notice={notice} qrCodeUrl={qrCodes[notice.id]} onClick={() => setShowNoticeInfo(true)} />
-                ))}
-              </CarouselList>
-
-              {/* ★変更: 全投稿エリアへのスクロール用Refを追加 */}
-              <section className="w-full py-4" ref={allPostsRef}>
-                <div className="flex items-end justify-between mb-4 px-1">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl"><Grip className="h-8 w-8 text-primary/80" /></span> 
-                    <div>
-                      <h2 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
-                        すべての &quot;やってみた&quot;
-                      </h2>
-                      <p className="text-xs text-slate-500 mt-1">みんなの試行錯誤を見てみよう</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {posts.map((post) => (
-                    <StandardPostCard
-                      key={post.id}
-                      post={post}
-                      isLiked={likedPosts.has(post.id)}
-                      onLike={handleLike}
-                      onClick={() => setSelectedPost(post)}
-                      onComment={() => setShowCommentInfo(true)}
-                    />
-                  ))}
-                </div>
-              </section>
-            </div>
-          ) : (
-            // Thanks Letter View
-            <div className="w-full h-full">
-              {/* onComplete を渡す */}
-              <ThanksLetterView 
-                onBack={() => handleNavigate("home")} 
-                onComplete={handleThanksComplete} 
-              />
-            </div>
-          )}
-        </main>
-
-        {currentView === "home" && (
-          <div className={`fixed bottom-6 right-6 z-40 transition-all duration-300 ${showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"}`}>
-            <Button onClick={scrollToTop} className="rounded-full w-12 h-12 bg-primary text-white shadow-lg hover:bg-primary/90 hover:scale-110 transition-all" size="icon">
-              <ArrowUp className="w-6 h-6" />
-            </Button>
+      {/* 全投稿一覧 (Grid形式) */}
+      <section>
+        <div className="mb-4 flex items-center gap-3 px-1">
+          <Grip className="h-8 w-8 text-primary/80" />
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">全投稿</h2>
+            <p className="text-sm text-slate-500 mt-1">最新順に表示されています</p>
           </div>
-        )}
-
-      </div>
+        </div>
+        
+        {/* StudentPageと同じGridレイアウトを採用 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {posts.map((post) => (
+            <StandardPostCard
+              key={post.id}
+              post={post}
+              isLiked={likedPosts.has(post.id)}
+              onLike={handleLike}
+              onClick={() => handlePostClick(post)}
+              onComment={() => setShowCommentInfo(true)}
+            />
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
