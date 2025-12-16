@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { MvpMenuButton } from "@/components/common/MvpMenuButton";
 
 import { apiFetch } from "@/app/lib/api-client";
 import { clearAccessToken, setAccessToken } from "@/app/lib/auth-client";
@@ -116,6 +117,13 @@ function MePageContent() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* MVPメニューボタン（固定位置） */}
+      <div className="fixed top-4 right-4 z-50">
+        <div className="bg-slate-800 rounded-lg p-1">
+          <MvpMenuButton />
+        </div>
+      </div>
+
       <div className="mx-auto max-w-4xl px-6 py-16">
         <div className="flex items-center justify-between">
           <div>

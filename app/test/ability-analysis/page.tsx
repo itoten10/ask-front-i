@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MvpMenuButton } from "@/components/common/MvpMenuButton";
 
 interface MatchedAbility {
   code: string;
@@ -17,21 +18,21 @@ interface AnalysisResult {
 }
 
 const ABILITIES = [
-  { code: "problem_setting", name: "課題設定力", color: "bg-blue-100 text-blue-800", borderColor: "border-blue-300" },
-  { code: "information_gathering", name: "情報収集力", color: "bg-green-100 text-green-800", borderColor: "border-green-300" },
-  { code: "involvement", name: "巻き込む力", color: "bg-yellow-100 text-yellow-800", borderColor: "border-yellow-300" },
-  { code: "communication", name: "対話する力", color: "bg-purple-100 text-purple-800", borderColor: "border-purple-300" },
-  { code: "humility", name: "謙虚である力", color: "bg-pink-100 text-pink-800", borderColor: "border-pink-300" },
-  { code: "execution", name: "実行する力", color: "bg-orange-100 text-orange-800", borderColor: "border-orange-300" },
-  { code: "completion", name: "完遂する力", color: "bg-red-100 text-red-800", borderColor: "border-red-300" },
+  { code: "problem_setting", name: "課題設定力" },
+  { code: "information_gathering", name: "情報収集力" },
+  { code: "involvement", name: "巻き込む力" },
+  { code: "communication", name: "対話する力" },
+  { code: "humility", name: "謙虚である力" },
+  { code: "execution", name: "実行する力" },
+  { code: "completion", name: "完遂する力" },
 ];
 
-const LEVEL_LABELS: { [key: number]: { label: string; description: string; color: string } } = {
-  1: { label: "Lv.1", description: "初歩的", color: "bg-gray-400" },
-  2: { label: "Lv.2", description: "発展途上", color: "bg-yellow-400" },
-  3: { label: "Lv.3", description: "標準的", color: "bg-blue-400" },
-  4: { label: "Lv.4", description: "発展的", color: "bg-green-500" },
-  5: { label: "Lv.5", description: "卓越", color: "bg-purple-500" },
+const LEVEL_LABELS: { [key: number]: { label: string; description: string } } = {
+  1: { label: "Lv.1", description: "初歩的" },
+  2: { label: "Lv.2", description: "発展途上" },
+  3: { label: "Lv.3", description: "標準的" },
+  4: { label: "Lv.4", description: "発展的" },
+  5: { label: "Lv.5", description: "卓越" },
 };
 
 export default function AbilityAnalysisTestPage() {
@@ -79,16 +80,19 @@ export default function AbilityAnalysisTestPage() {
     }
   };
 
-  const getAbilityInfo = (code: string) => {
-    return ABILITIES.find(a => a.code === code) || { color: "bg-gray-100 text-gray-800", borderColor: "border-gray-300" };
-  };
-
   const getLevelInfo = (level: number) => {
     return LEVEL_LABELS[level] || LEVEL_LABELS[3];
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+    <div className="min-h-screen bg-slate-50 p-8">
+      {/* MVPメニューボタン（固定位置） */}
+      <div className="fixed top-4 right-4 z-50">
+        <div className="bg-slate-800 rounded-lg p-1">
+          <MvpMenuButton />
+        </div>
+      </div>
+
       <div className="mx-auto max-w-4xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">
@@ -100,13 +104,13 @@ export default function AbilityAnalysisTestPage() {
         </div>
 
         {/* 能力一覧 */}
-        <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
+        <div className="mb-8 rounded-lg bg-white p-6 shadow-sm border border-slate-200">
           <h2 className="mb-4 text-lg font-semibold text-slate-900">7つの非認知能力</h2>
           <div className="flex flex-wrap gap-2">
             {ABILITIES.map((ability) => (
               <span
                 key={ability.code}
-                className={`rounded-full px-3 py-1 text-sm font-medium ${ability.color}`}
+                className="rounded-full px-3 py-1 text-sm font-medium bg-purple-100 text-purple-800"
               >
                 {ability.name}
               </span>
@@ -115,14 +119,20 @@ export default function AbilityAnalysisTestPage() {
         </div>
 
         {/* 5段階レベル説明 */}
-        <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
+        <div className="mb-8 rounded-lg bg-white p-6 shadow-sm border border-slate-200">
           <h2 className="mb-4 text-lg font-semibold text-slate-900">5段階レベル評価</h2>
           <div className="grid grid-cols-5 gap-2">
             {[1, 2, 3, 4, 5].map((level) => {
               const info = getLevelInfo(level);
+              // レベルに応じた紫の濃さ
+              const bgColor = level === 1 ? "bg-slate-300" :
+                             level === 2 ? "bg-purple-300" :
+                             level === 3 ? "bg-purple-400" :
+                             level === 4 ? "bg-purple-500" :
+                             "bg-purple-600";
               return (
                 <div key={level} className="text-center">
-                  <div className={`mx-auto w-10 h-10 rounded-full ${info.color} flex items-center justify-center text-white font-bold text-sm mb-1`}>
+                  <div className={`mx-auto w-10 h-10 rounded-full ${bgColor} flex items-center justify-center text-white font-bold text-sm mb-1`}>
                     {level}
                   </div>
                   <div className="text-xs font-medium text-slate-700">{info.description}</div>
@@ -133,7 +143,7 @@ export default function AbilityAnalysisTestPage() {
         </div>
 
         {/* 入力フォーム */}
-        <div className="rounded-lg bg-white p-6 shadow-sm">
+        <div className="rounded-lg bg-white p-6 shadow-sm border border-slate-200">
           <div className="space-y-6">
             {/* 課題・問い */}
             <div>
@@ -148,7 +158,7 @@ export default function AbilityAnalysisTestPage() {
                 id="problem"
                 value={problem}
                 onChange={(e) => setProblem(e.target.value)}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
                 placeholder="例：地域の高齢化問題について調べる"
               />
             </div>
@@ -160,20 +170,20 @@ export default function AbilityAnalysisTestPage() {
                 className="block text-sm font-medium text-slate-900 mb-2"
               >
                 やってみたこと
-                <span className="text-red-600 ml-1">*</span>
+                <span className="text-purple-600 ml-1">*</span>
               </label>
               <textarea
                 id="content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={6}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
                 placeholder="例：地域の高齢者施設を訪問し、スタッフの方にインタビューを行いました。高齢化の現状や課題について、実際に働いている方の生の声を聞くことができました。また、調べた内容をチームメンバーと共有し、次の調査計画を立てました。"
               />
             </div>
 
             {error && (
-              <div className="rounded-md bg-red-50 p-4 text-sm text-red-800">
+              <div className="rounded-md bg-slate-100 border border-slate-300 p-4 text-sm text-slate-700">
                 {error}
               </div>
             )}
@@ -181,7 +191,7 @@ export default function AbilityAnalysisTestPage() {
             <button
               onClick={handleAnalyze}
               disabled={loading}
-              className="w-full rounded-md bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-md bg-purple-600 px-4 py-3 text-sm font-semibold text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? (
                 <span className="flex items-center justify-center">
@@ -200,11 +210,11 @@ export default function AbilityAnalysisTestPage() {
 
         {/* 結果表示 */}
         {result && (
-          <div className="mt-8 rounded-lg bg-white p-6 shadow-sm">
+          <div className="mt-8 rounded-lg bg-white p-6 shadow-sm border border-slate-200">
             <h2 className="mb-4 text-lg font-semibold text-slate-900">判定結果</h2>
 
             {result.matched_abilities.length === 0 ? (
-              <div className="rounded-md bg-gray-50 p-4 text-sm text-gray-600">
+              <div className="rounded-md bg-slate-100 p-4 text-sm text-slate-600">
                 該当する能力が見つかりませんでした。もう少し具体的な活動内容を入力してみてください。
               </div>
             ) : (
@@ -216,37 +226,47 @@ export default function AbilityAnalysisTestPage() {
                   </h3>
                   <div className="space-y-4">
                     {result.matched_abilities.map((ability, index) => {
-                      const abilityInfo = getAbilityInfo(ability.code);
                       const levelInfo = getLevelInfo(ability.level);
+                      // レベルに応じた紫の濃さ
+                      const levelBgColor = ability.level === 1 ? "bg-slate-300" :
+                                          ability.level === 2 ? "bg-purple-300" :
+                                          ability.level === 3 ? "bg-purple-400" :
+                                          ability.level === 4 ? "bg-purple-500" :
+                                          "bg-purple-600";
                       return (
                         <div
                           key={index}
-                          className={`rounded-lg border-2 ${abilityInfo.borderColor} p-4`}
+                          className="rounded-lg border border-slate-200 p-4 bg-slate-50"
                         >
                           {/* ヘッダー: 能力名とレベル */}
                           <div className="flex items-center justify-between mb-3">
-                            <span
-                              className={`rounded-full px-3 py-1 text-sm font-medium ${abilityInfo.color}`}
-                            >
+                            <span className="rounded-full px-3 py-1 text-sm font-medium bg-purple-100 text-purple-800">
                               {ability.name}
                             </span>
                             <div className="flex items-center gap-2">
                               {/* 5段階レベル表示（該当レベルのみ色付き） */}
                               <div className="flex items-center gap-1">
-                                {[1, 2, 3, 4, 5].map((l) => (
-                                  <div
-                                    key={l}
-                                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                                      l === ability.level
-                                        ? `${getLevelInfo(l).color} text-white ring-2 ring-offset-1 ring-${getLevelInfo(l).color.replace('bg-', '')}`
-                                        : "bg-gray-200 text-gray-400"
-                                    }`}
-                                  >
-                                    {l}
-                                  </div>
-                                ))}
+                                {[1, 2, 3, 4, 5].map((l) => {
+                                  const lBgColor = l === 1 ? "bg-slate-300" :
+                                                  l === 2 ? "bg-purple-300" :
+                                                  l === 3 ? "bg-purple-400" :
+                                                  l === 4 ? "bg-purple-500" :
+                                                  "bg-purple-600";
+                                  return (
+                                    <div
+                                      key={l}
+                                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                                        l === ability.level
+                                          ? `${lBgColor} text-white ring-2 ring-offset-1 ring-purple-300`
+                                          : "bg-slate-200 text-slate-400"
+                                      }`}
+                                    >
+                                      {l}
+                                    </div>
+                                  );
+                                })}
                               </div>
-                              <span className={`ml-2 px-2 py-1 rounded text-xs font-bold text-white ${levelInfo.color}`}>
+                              <span className={`ml-2 px-2 py-1 rounded text-xs font-bold text-white ${levelBgColor}`}>
                                 {levelInfo.description}
                               </span>
                             </div>
@@ -260,8 +280,8 @@ export default function AbilityAnalysisTestPage() {
                           </div>
 
                           {/* レベル判定理由（補足情報として下に配置） */}
-                          <div className="p-2 bg-slate-50 rounded text-xs text-slate-500 border-l-2 border-slate-300">
-                            <span className="font-medium">Lv{ability.level}の根拠: </span>
+                          <div className="p-2 bg-white rounded text-xs text-slate-500 border-l-2 border-purple-300">
+                            <span className="font-medium text-purple-700">Lv{ability.level}の根拠: </span>
                             {ability.level_reason}
                           </div>
                         </div>
@@ -272,18 +292,18 @@ export default function AbilityAnalysisTestPage() {
 
                 {/* 分析サマリー */}
                 {result.analysis_summary && (
-                  <div className="mt-4 rounded-md bg-indigo-50 p-4">
-                    <h3 className="mb-2 text-sm font-medium text-indigo-900">
+                  <div className="mt-4 rounded-md bg-purple-50 border border-purple-200 p-4">
+                    <h3 className="mb-2 text-sm font-medium text-purple-900">
                       AIによる分析サマリー
                     </h3>
-                    <p className="text-sm text-indigo-700">{result.analysis_summary}</p>
+                    <p className="text-sm text-purple-700">{result.analysis_summary}</p>
                   </div>
                 )}
               </div>
             )}
 
             {result.error && (
-              <div className="mt-4 rounded-md bg-yellow-50 p-4 text-sm text-yellow-800">
+              <div className="mt-4 rounded-md bg-slate-100 border border-slate-300 p-4 text-sm text-slate-700">
                 注意: {result.error}
               </div>
             )}
@@ -291,7 +311,7 @@ export default function AbilityAnalysisTestPage() {
         )}
 
         {/* サンプル入力 */}
-        <div className="mt-8 rounded-lg bg-slate-50 p-6">
+        <div className="mt-8 rounded-lg bg-slate-100 border border-slate-200 p-6">
           <h3 className="mb-3 text-sm font-medium text-slate-700">サンプル入力例</h3>
           <div className="space-y-2 text-sm text-slate-600">
             <p><strong>課題:</strong> 地域の高齢化問題について調べる</p>
@@ -308,7 +328,7 @@ export default function AbilityAnalysisTestPage() {
               setProblem("地域の高齢化問題について調べる");
               setContent("地域の高齢者施設を訪問し、スタッフの方にインタビューを行いました。高齢化の現状や課題について、実際に働いている方の生の声を聞くことができました。また、調べた内容をチームメンバーと共有し、次の調査計画を立てました。先生からのフィードバックを受けて、調査の観点を修正しました。");
             }}
-            className="mt-4 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="mt-4 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
           >
             サンプルを入力する
           </button>
