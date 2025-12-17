@@ -359,7 +359,7 @@ export function TeacherHomeView({ filters, onFilterReset }: TeacherHomeViewProps
                   <TableHead className="text-center font-bold text-white h-12 w-[140px]">ゼミ</TableHead>
                   <TableHead className="text-center font-bold text-white h-12 w-[100px]">介入フラグ</TableHead>
                   <TableHead className="text-center font-bold text-white h-12 w-[120px]">フェーズ</TableHead>
-                  <TableHead className="text-center font-bold text-white h-12 w-[120px]">課題変更回数</TableHead>
+                  <TableHead className="text-center font-bold text-white h-12 w-[120px]">問いの変更回数</TableHead>
                   <TableHead className="text-center font-bold text-white h-12 w-[100px]">投稿数</TableHead>
                   <TableHead className="text-center font-bold text-white h-12 w-[120px]">最終投稿日</TableHead>
                   <TableHead className="text-center font-bold text-white h-12 w-[140px]">非認知知能力<br/>発揮状況</TableHead>

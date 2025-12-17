@@ -1,4 +1,4 @@
-// ask-front-i/components/student/CarouselList.tsx
+// ask-front-i/components/student-dummy/CarouselList.tsx
 
 "use client";
 
@@ -22,7 +22,8 @@ interface CarouselListProps {
   subTitle?: string;
   linkText?: string;
   children: React.ReactNode;
-  icon?: string;
+  // 変更点: 文字列だけでなくコンポーネントを受け取れるように変更
+  icon?: React.ReactNode;
 }
 
 export function CarouselList({ 
@@ -60,7 +61,8 @@ export function CarouselList({
       {/* ヘッダーエリア */}
       <div className="flex items-end justify-between mb-4 px-1">
         <div className="flex items-center gap-3">
-          {icon && <span className="text-3xl">{icon}</span>}
+          {/* 変更点: text-3xlを削除し、flex-shrink-0を追加（アイコンが潰れるのを防ぐ） */}
+          {icon && <span className="flex-shrink-0">{icon}</span>}
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-primary flex items-center gap-2">
               {title}
