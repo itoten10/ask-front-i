@@ -1,4 +1,4 @@
-// components/layout/Header.tsx
+// components/layout-dummy/Header.tsx
 
 "use client";
 

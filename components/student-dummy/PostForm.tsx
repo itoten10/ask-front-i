@@ -1,4 +1,4 @@
-// ask-front-i/components/student/PostForm.tsx
+// ask-front-i/components/student-dummy/PostForm.tsx
 
 "use client";
 
@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Pencil, Megaphone, Check } from "lucide-react";
-// ★ 変更: 共通モーダルをインポート
 import { ThankYouModal } from "@/components/student-dummy/ThankYouModal";
 
 interface PostData {
@@ -22,12 +21,26 @@ interface PostData {
 
 interface PostFormProps {
   onSubmit: (data: PostData) => void;
+  // ★追加: 外部から開閉を制御するためのProps
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function PostForm({ onSubmit }: PostFormProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function PostForm({ onSubmit, isOpen, onOpenChange }: PostFormProps) {
+  // 内部ステート（Propsが指定されていない場合のフォールバック用）
+  const [internalIsExpanded, setInternalIsExpanded] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
+
+  // 制御された状態か、内部状態かを判定
+  const isExpanded = isOpen !== undefined ? isOpen : internalIsExpanded;
+  const setIsExpanded = (value: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(value);
+    } else {
+      setInternalIsExpanded(value);
+    }
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -88,7 +101,6 @@ export function PostForm({ onSubmit }: PostFormProps) {
         border shadow-sm bg-white overflow-hidden transition-all duration-300 ease-in-out
         ${isExpanded ? "border-primary/50 ring-1 ring-primary/20 shadow-md" : "border-slate-200 hover:border-primary/30"}
       `}>
-        {/* ... (中身のJSXは変更なしのため省略します。元のコードのまま記述してください) ... */}
         <CardContent className="p-0">
           {!isExpanded ? (
             <div 
@@ -112,7 +124,7 @@ export function PostForm({ onSubmit }: PostFormProps) {
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="flex p-6 gap-6">
-                <div className="shrink-0">
+                <div className="shrink-0 hidden sm:block">
                   <Avatar className="h-14 w-14 border-2 border-slate-100">
                     <AvatarImage src="/avatars/01.jpg" alt="My Avatar" />
                     <AvatarFallback>私</AvatarFallback>
