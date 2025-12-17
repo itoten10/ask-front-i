@@ -85,82 +85,94 @@ export function TeacherHomeView({ filters, onFilterReset }: TeacherHomeViewProps
     "フィジカルラボ", "文化教育ゼミ", "地域ビジネスゼミ", "１－１ 地域共創", "１－２ 地域共創"
   ];
 
-  // NOTE(MOCK): 2025年版ダミーデータ (60名)
+  // NOTE(MOCK): 2025年12月18日時点を想定したダミーデータ (整合性調整済み)
   const rawData = [
-    { name: "髙橋 由華", phase: "情報収集", change: 0, post: 8, date: "11/25", signal: "red" },
-    { name: "江藤 泰平", phase: "課題設定", change: 2, post: 15, date: "12/17", signal: "green" },
-    { name: "由井 理月", phase: "情報収集", change: 0, post: 12, date: "12/15", signal: "green" },
-    { name: "伊藤 誠人", phase: "課題設定", change: 1, post: 6, date: "12/10", signal: "yellow" },
-    { name: "佐藤 健太", phase: "情報収集", change: 1, post: 3, date: "11/03", signal: "red" },
+    // --- 1ページ目想定 ---
+    { name: "髙橋 由華", phase: "情報収集", change: 0, post: 8, date: "11/25", signal: "red" },     // フラグ: 変更0 & 日付古い
+    { name: "江藤 泰平", phase: "課題設定", change: 2, post: 15, date: "12/18", signal: "green" },  // 最新
+    { name: "由井 理月", phase: "情報収集", change: 0, post: 12, date: "12/15", signal: "green" },  // フラグ: 変更0 (日付新しくても問いが変わってない)
+    { name: "伊藤 誠人", phase: "課題設定", change: 1, post: 6, date: "12/10", signal: "yellow" },  // 注意: 日付少し前
+    { name: "佐藤 健太", phase: "情報収集", change: 1, post: 3, date: "11/03", signal: "red" },     // フラグ: 日付古い
     { name: "鈴木 花子", phase: "整理・分析", change: 2, post: 11, date: "12/12", signal: "yellow" },
     { name: "田中 太郎", phase: "まとめ・表現", change: 3, post: 20, date: "12/18", signal: "green" },
     { name: "山田 次郎", phase: "整理・分析", change: 3, post: 10, date: "12/16", signal: "green" },
-    { name: "木村 拓哉", phase: "実験・調査", change: 0, post: 15, date: "11/30", signal: "yellow" },
+    { name: "木村 拓哉", phase: "実験・調査", change: 1, post: 15, date: "12/05", signal: "yellow" }, // 日付境界付近
     { name: "斎藤 飛鳥", phase: "発表準備", change: 4, post: 22, date: "12/18", signal: "green" },
-    { name: "西野 七瀬", phase: "テーマ設定", change: 0, post: 1, date: "10/01", signal: "red" },
-    { name: "白石 麻衣", phase: "情報収集", change: 1, post: 4, date: "11/25", signal: "yellow" },
+    { name: "西野 七瀬", phase: "テーマ設定", change: 0, post: 1, date: "10/01", signal: "red" },     // フラグ: 完全停止
+    { name: "白石 麻衣", phase: "情報収集", change: 1, post: 4, date: "12/02", signal: "red" },     // フラグ: 日付古い(<12/4)
     { name: "生田 絵梨花", phase: "整理・分析", change: 2, post: 11, date: "12/15", signal: "green" },
     { name: "秋元 真夏", phase: "課題設定", change: 5, post: 8, date: "12/10", signal: "yellow" },
     { name: "山下 美月", phase: "実験・調査", change: 2, post: 14, date: "12/16", signal: "green" },
     { name: "梅澤 美波", phase: "まとめ・表現", change: 3, post: 18, date: "12/17", signal: "green" },
-    { name: "久保 史緒里", phase: "情報収集", change: 0, post: 2, date: "10/15", signal: "red" },
+    { name: "久保 史緒里", phase: "情報収集", change: 0, post: 2, date: "10/15", signal: "red" },     // フラグ
     { name: "与田 祐希", phase: "整理・分析", change: 1, post: 7, date: "12/05", signal: "yellow" },
     { name: "遠藤 さくら", phase: "実験・調査", change: 2, post: 10, date: "12/16", signal: "green" },
     { name: "賀喜 遥香", phase: "発表準備", change: 3, post: 20, date: "12/18", signal: "green" },
-    { name: "井上 和", phase: "テーマ設定", change: 0, post: 5, date: "12/01", signal: "red" },
+    
+    // --- 2ページ目以降 ---
+    { name: "井上 和", phase: "テーマ設定", change: 0, post: 5, date: "12/01", signal: "red" },      // フラグ
     { name: "菅原 咲月", phase: "課題設定", change: 1, post: 12, date: "12/15", signal: "green" },
-    { name: "一ノ瀬 美空", phase: "情報収集", change: 0, post: 8, date: "12/10", signal: "yellow" },
+    { name: "一ノ瀬 美空", phase: "情報収集", change: 0, post: 8, date: "12/10", signal: "yellow" }, // フラグ: 変更0
     { name: "川﨑 桜", phase: "実験・調査", change: 2, post: 15, date: "12/16", signal: "green" },
     { name: "中西 アルノ", phase: "整理・分析", change: 3, post: 18, date: "12/17", signal: "green" },
     { name: "池田 瑛紗", phase: "まとめ・表現", change: 1, post: 22, date: "12/18", signal: "green" },
     { name: "小川 彩", phase: "発表準備", change: 2, post: 14, date: "12/14", signal: "green" },
-    { name: "五百城 茉央", phase: "情報収集", change: 0, post: 3, date: "11/20", signal: "red" },
+    { name: "五百城 茉央", phase: "情報収集", change: 0, post: 3, date: "11/20", signal: "red" },     // フラグ
     { name: "奥田 いろは", phase: "課題設定", change: 1, post: 9, date: "12/08", signal: "yellow" },
-    { name: "冨里 奈央", phase: "実験・調査", change: 0, post: 11, date: "12/12", signal: "green" },
-    { name: "黒見 明香", phase: "テーマ設定", change: 0, post: 2, date: "11/01", signal: "red" },
+    { name: "冨里 奈央", phase: "実験・調査", change: 1, post: 11, date: "12/12", signal: "green" },
+    { name: "黒見 明香", phase: "テーマ設定", change: 0, post: 2, date: "11/01", signal: "red" },     // フラグ
     { name: "佐藤 璃果", phase: "情報収集", change: 1, post: 6, date: "12/05", signal: "yellow" },
     { name: "林 瑠奈", phase: "整理・分析", change: 2, post: 13, date: "12/15", signal: "green" },
     { name: "松尾 美佑", phase: "実験・調査", change: 3, post: 16, date: "12/17", signal: "green" },
-    { name: "矢久保 美緒", phase: "まとめ・表現", change: 1, post: 8, date: "12/01", signal: "yellow" },
-    { name: "清宮 レイ", phase: "課題設定", change: 0, post: 4, date: "11/15", signal: "red" },
+    { name: "矢久保 美緒", phase: "まとめ・表現", change: 1, post: 8, date: "12/01", signal: "red" }, // フラグ: 日付古い(<12/4)
+    { name: "清宮 レイ", phase: "課題設定", change: 0, post: 4, date: "11/15", signal: "red" },     // フラグ
     { name: "柴田 柚菜", phase: "情報収集", change: 2, post: 12, date: "12/14", signal: "green" },
     { name: "金川 紗耶", phase: "整理・分析", change: 1, post: 10, date: "12/10", signal: "yellow" },
     { name: "早川 聖来", phase: "発表準備", change: 3, post: 19, date: "12/18", signal: "green" },
     { name: "田村 真佑", phase: "実験・調査", change: 2, post: 15, date: "12/16", signal: "green" },
-    { name: "筒井 あやめ", phase: "課題設定", change: 0, post: 7, date: "11/30", signal: "yellow" },
-    { name: "掛橋 沙耶香", phase: "情報収集", change: 1, post: 5, date: "11/25", signal: "red" },
+    { name: "筒井 あやめ", phase: "課題設定", change: 1, post: 7, date: "11/30", signal: "red" },     // フラグ: 日付古い
+    { name: "掛橋 沙耶香", phase: "情報収集", change: 1, post: 5, date: "11/25", signal: "red" },     // フラグ
     { name: "鈴木 絢音", phase: "整理・分析", change: 2, post: 14, date: "12/15", signal: "green" },
     { name: "山崎 怜奈", phase: "まとめ・表現", change: 4, post: 25, date: "12/18", signal: "green" },
     { name: "渡辺 みり愛", phase: "実験・調査", change: 1, post: 9, date: "12/05", signal: "yellow" },
-    { name: "北野 日奈子", phase: "課題設定", change: 0, post: 3, date: "11/10", signal: "red" },
+    { name: "北野 日奈子", phase: "課題設定", change: 0, post: 3, date: "11/10", signal: "red" },     // フラグ
     { name: "新内 眞衣", phase: "情報収集", change: 2, post: 11, date: "12/13", signal: "green" },
     { name: "寺田 蘭世", phase: "整理・分析", change: 1, post: 8, date: "12/08", signal: "yellow" },
     { name: "星野 みなみ", phase: "発表準備", change: 3, post: 17, date: "12/17", signal: "green" },
-    { name: "樋口 日奈", phase: "実験・調査", change: 0, post: 6, date: "11/20", signal: "red" },
-    { name: "和田 まあや", phase: "テーマ設定", change: 0, post: 1, date: "11/15", signal: "red" },
-    { name: "伊藤 純奈", phase: "課題設定", change: 1, post: 5, date: "12/01", signal: "yellow" },
-    { name: "佐々木 琴子", phase: "情報収集", change: 0, post: 2, date: "11/10", signal: "red" },
+    { name: "樋口 日奈", phase: "実験・調査", change: 0, post: 6, date: "11/20", signal: "red" },     // フラグ
+    { name: "和田 まあや", phase: "テーマ設定", change: 0, post: 1, date: "11/15", signal: "red" },     // フラグ
+    { name: "伊藤 純奈", phase: "課題設定", change: 1, post: 5, date: "12/01", signal: "red" },     // フラグ: 日付古い(<12/4)
+    { name: "佐々木 琴子", phase: "情報収集", change: 0, post: 2, date: "11/10", signal: "red" },     // フラグ
     { name: "伊藤 かりん", phase: "整理・分析", change: 2, post: 13, date: "12/14", signal: "green" },
     { name: "斉藤 優里", phase: "実験・調査", change: 3, post: 16, date: "12/16", signal: "green" },
     { name: "西川 七海", phase: "まとめ・表現", change: 1, post: 9, date: "12/05", signal: "yellow" },
     { name: "能條 愛未", phase: "発表準備", change: 2, post: 18, date: "12/18", signal: "green" },
-    { name: "川村 真洋", phase: "情報収集", change: 0, post: 4, date: "11/25", signal: "red" },
+    { name: "川村 真洋", phase: "情報収集", change: 0, post: 4, date: "11/25", signal: "red" },     // フラグ
     { name: "畠中 清羅", phase: "課題設定", change: 1, post: 7, date: "12/10", signal: "yellow" },
-    { name: "大和 里菜", phase: "実験・調査", change: 0, post: 10, date: "12/12", signal: "green" },
+    { name: "大和 里菜", phase: "実験・調査", change: 0, post: 10, date: "12/12", signal: "yellow" }, // フラグ: 変更0 (日付は新しい)
   ];
 
   // ==========================================
   // Logic: Intervention Check
   // ==========================================
   const calculateInterventionFlag = (change: number, post: number, dateStr: string): boolean => {
+    // 1. 問いの変更回数が0回なら介入 (日付に関わらず)
     if (change === 0) return true;
-    if (post < 10) return true;
-    const MOCK_CURRENT_DATE = new Date("2025-12-18");
+
+    // 2. 最終投稿日が2週間以上前（12/4より前）なら介入
+    // Demo基準日: 2025-12-18
+    const MOCK_YEAR = 2025;
     const [month, day] = dateStr.split('/').map(Number);
-    const lastPostDate = new Date(2025, month - 1, day);
-    const diffTime = Math.abs(MOCK_CURRENT_DATE.getTime() - lastPostDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-    if (diffDays >= 14) return true;
+    
+    // dateStrのパース
+    const lastPostDate = new Date(MOCK_YEAR, month - 1, day);
+    
+    // 基準日: 12月4日 (month is 0-index)
+    // この日より前（< 2025-12-04）の場合にフラグを立てる
+    const deadlineDate = new Date(2025, 11, 4); 
+
+    if (lastPostDate < deadlineDate) return true;
+
     return false;
   };
 
