@@ -152,7 +152,42 @@ export function AuthThanksLetterView({ onBack, onComplete }: AuthThanksLetterVie
     }
   };
 
-  // ビューモード変更時に手紙を取得
+  // 初回マウント時に両方の手紙を取得（タブのカウント表示用）
+  useEffect(() => {
+    const fetchAllLetters = async () => {
+      try {
+        const token = await ensureAccessToken();
+        if (!token) return;
+
+        const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT || "http://localhost:8000";
+
+        // 並行して両方取得
+        const [receivedRes, sentRes] = await Promise.all([
+          fetch(`${API_ENDPOINT}/thanks-letters/received`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API_ENDPOINT}/thanks-letters/sent`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        if (receivedRes.ok) {
+          const data = await receivedRes.json();
+          setReceivedLetters(data);
+        }
+        if (sentRes.ok) {
+          const data = await sentRes.json();
+          setSentLetters(data);
+        }
+      } catch (err) {
+        console.error("letters fetch error:", err);
+      }
+    };
+
+    fetchAllLetters();
+  }, []);
+
+  // ビューモード変更時に手紙を取得（最新データに更新）
   useEffect(() => {
     if (viewMode === "received") {
       fetchLetters("received");
