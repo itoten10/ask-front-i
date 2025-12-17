@@ -14,15 +14,15 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { cn } from "@/lib/utils";
-// ★追加: オートプレイ用プラグイン
 import Autoplay from "embla-carousel-autoplay";
+// ★追加: モーダルをインポート（パスは環境に合わせて調整してください）
+import { FeatureInfoModal } from "@/components/student-dummy/FeatureInfoModal";
 
 interface CarouselListProps {
   title: string;
   subTitle?: string;
   linkText?: string;
   children: React.ReactNode;
-  // 変更点: 文字列だけでなくコンポーネントを受け取れるように変更
   icon?: React.ReactNode;
 }
 
@@ -37,10 +37,9 @@ export function CarouselList({
   const [current, setCurrent] = React.useState(0);
   const [count, setCount] = React.useState(0);
 
-  // ★追加: オートプレイの設定
-  // delay: 3000ms (3秒) 間隔
-  // stopOnMouseEnter: true (マウスホバーで停止)
-  // stopOnInteraction: false (操作後も自動再生を続ける場合はfalse、止めるならtrue)
+  // ★追加: モーダルの表示状態を管理
+  const [showComingSoon, setShowComingSoon] = React.useState(false);
+
   const plugin = React.useRef(
     Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })
   );
@@ -58,10 +57,22 @@ export function CarouselList({
 
   return (
     <section className="w-full py-4">
+      {/* ★追加: モーダルコンポーネントの配置 */}
+      <FeatureInfoModal 
+        open={showComingSoon}
+        onClose={() => setShowComingSoon(false)}
+        title="機能のお知らせ"
+        description={
+          <>
+            こちらの機能は準備中です。<br />
+            リスト形式で一覧が表示されるようになります。
+          </>
+        }
+      />
+
       {/* ヘッダーエリア */}
       <div className="flex items-end justify-between mb-4 px-1">
         <div className="flex items-center gap-3">
-          {/* 変更点: text-3xlを削除し、flex-shrink-0を追加（アイコンが潰れるのを防ぐ） */}
           {icon && <span className="flex-shrink-0">{icon}</span>}
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-primary flex items-center gap-2">
@@ -70,21 +81,26 @@ export function CarouselList({
             {subTitle && <p className="text-xs text-slate-500 mt-1">{subTitle}</p>}
           </div>
         </div>
-        <Button variant="link" className="text-slate-500 text-xs flex items-center gap-1 hover:text-primary">
+        <Button 
+          variant="link" 
+          className="text-slate-500 text-xs flex items-center gap-1 hover:text-primary"
+          // ★追加: クリック時にモーダルを開く
+          onClick={() => setShowComingSoon(true)}
+        >
           {linkText} <ChevronRight className="h-3 w-3" />
         </Button>
       </div>
 
       <Carousel
         setApi={setApi}
-        plugins={[plugin.current]} // ★追加: プラグインを適用
+        plugins={[plugin.current]}
         opts={{
           align: "start",
           loop: true,
         }}
         className="w-full relative group"
-        onMouseEnter={plugin.current.stop} // マウスが乗ったら停止
-        onMouseLeave={plugin.current.reset} // 離れたら再開
+        onMouseEnter={plugin.current.stop}
+        onMouseLeave={plugin.current.reset}
       >
         <CarouselContent className="-ml-4">
           {React.Children.map(children, (child) => (
@@ -96,7 +112,6 @@ export function CarouselList({
           ))}
         </CarouselContent>
         
-        {/* ボタン (Overlay配置) */}
         <CarouselPrevious 
           className="hidden md:flex left-2 w-10 h-10 border border-slate-200 bg-white/90 text-slate-700 hover:bg-primary hover:text-white hover:border-primary shadow-md transition-all z-10" 
         />
@@ -104,7 +119,6 @@ export function CarouselList({
           className="hidden md:flex right-2 w-10 h-10 border border-slate-200 bg-white/90 text-slate-700 hover:bg-primary hover:text-white hover:border-primary shadow-md transition-all z-10" 
         />
 
-        {/* ドットインジケーター */}
         <div className="flex justify-center gap-2 mt-6">
           {Array.from({ length: count }).map((_, index) => (
             <button

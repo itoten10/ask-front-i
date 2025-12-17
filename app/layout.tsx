@@ -6,7 +6,7 @@ import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "KATARIBA",
-  description: "KATARIBAへようこそ",
+  description: "“KATARIBA”へようこそ！ “KATARIBA”は、生徒が探究学習での「やってみた」を気軽に共有できるプラットフォームです。",
 };
 
 export default function RootLayout({
