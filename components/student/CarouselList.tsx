@@ -16,13 +16,15 @@ import {
 import { cn } from "@/lib/utils";
 // ★追加: オートプレイ用プラグイン
 import Autoplay from "embla-carousel-autoplay";
+// ★追加: モーダルをインポート
+import { FeatureInfoModal } from "@/components/student/FeatureInfoModal";
 
 interface CarouselListProps {
   title: string;
   subTitle?: string;
   linkText?: string;
   children: React.ReactNode;
-  icon?: string;
+  icon?: React.ReactNode;
 }
 
 export function CarouselList({ 
@@ -35,6 +37,9 @@ export function CarouselList({
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [count, setCount] = React.useState(0);
+
+  // ★追加: モーダルの表示状態を管理
+  const [showComingSoon, setShowComingSoon] = React.useState(false);
 
   // ★追加: オートプレイの設定
   // delay: 3000ms (3秒) 間隔
@@ -72,10 +77,23 @@ export function CarouselList({
 
   return (
     <section className="w-full py-4">
+      {/* ★追加: モーダルコンポーネントの配置 */}
+      <FeatureInfoModal
+        open={showComingSoon}
+        onClose={() => setShowComingSoon(false)}
+        title="機能のお知らせ"
+        description={
+          <>
+            こちらの機能は準備中です。<br />
+            リスト形式で一覧が表示されるようになります。
+          </>
+        }
+      />
+
       {/* ヘッダーエリア */}
       <div className="flex items-end justify-between mb-4 px-1">
         <div className="flex items-center gap-3">
-          {icon && <span className="text-3xl">{icon}</span>}
+          {icon && <span className="flex-shrink-0">{icon}</span>}
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-primary flex items-center gap-2">
               {title}
@@ -83,7 +101,11 @@ export function CarouselList({
             {subTitle && <p className="text-xs text-slate-500 mt-1">{subTitle}</p>}
           </div>
         </div>
-        <Button variant="link" className="text-slate-500 text-xs flex items-center gap-1 hover:text-primary">
+        <Button
+          variant="link"
+          className="text-slate-500 text-xs flex items-center gap-1 hover:text-primary"
+          onClick={() => setShowComingSoon(true)}
+        >
           {linkText} <ChevronRight className="h-3 w-3" />
         </Button>
       </div>

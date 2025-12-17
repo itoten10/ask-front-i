@@ -6,12 +6,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { 
   Home, Mail, Users, FlaskConical, Globe, Cpu, Scale, 
   HeartPulse, Palette, MapPin, Heart, Star, LayoutGrid, Filter 
@@ -76,13 +70,13 @@ export function SidebarContent({
     ? `${userGrade}年${userClass}組`
     : userGrade
       ? `${userGrade}年`
-      : "2年4組";
+      : "";
 
   const studentData = {
-    name: userName || "髙橋 由華",
+    name: userName || "",
     class: classText,
     lab: userLab || "メディアラボ",
-    avatarUrl: userAvatar || "/avatars/01.jpg",
+    avatarUrl: userAvatar || "",
   };
 
   const classes = [
@@ -170,25 +164,6 @@ export function SidebarContent({
                 {studentData.name}
               </h3>
               
-              {userRole === "student" && (
-                <div className="flex justify-center items-center gap-2 mb-3">
-                  <div className="w-3 h-3 rounded-full bg-green-500 shadow-sm" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400 shadow-sm" />
-                  <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400 shadow-sm" />
-                  <TooltipProvider>
-                    <Tooltip delayDuration={300}>
-                      <TooltipTrigger asChild>
-                        <div className="ml-1 w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center text-[10px] text-slate-400 cursor-help hover:bg-slate-100 transition-colors">?</div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="max-w-[200px] text-xs bg-slate-800 text-white border-slate-700">
-                        <p>投稿の「量（回数）」、「質（AI評価）」、「感謝の手紙（他者評価）」を合計して一定期間毎に算出してます</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              )}
-
               <div className="text-sm font-medium text-slate-500 leading-relaxed">
                 <p>{studentData.class}</p>
                 {userRole === "teacher" ? (
@@ -213,26 +188,13 @@ export function SidebarContent({
           </Button>
 
           {userRole === "student" && (
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="outline"
               onClick={handleThanksClick}
-              className={cn(
-                "w-full justify-start h-12 text-base font-bold px-4 transition-all duration-300 group relative overflow-hidden",
-                badgeCount > 0 
-                  ? "text-slate-800 bg-yellow-50 border-2 border-yellow-400 hover:bg-yellow-100 hover:border-yellow-500 shadow-[0_0_15px_rgba(250,204,21,0.3)]" 
-                  : "text-slate-600 hover:bg-slate-50 border-2 border-transparent"
-              )}
+              className="w-full justify-start h-12 text-base font-bold border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-lg shadow-sm"
             >
-              <Mail className={cn(
-                "mr-3 h-5 w-5 transition-colors",
-                badgeCount > 0 ? "text-yellow-600 group-hover:text-yellow-700" : "opacity-70"
-              )} />
+              <Mail className="mr-3 h-5 w-5" />
               感謝の手紙を書く
-              {badgeCount > 0 && (
-                <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow-sm animate-bounce">
-                  {badgeCount}
-                </span>
-              )}
             </Button>
           )}
         </div>

@@ -234,8 +234,12 @@ export function StudentHistoryView({ studentName, studentId, accessToken, onBack
         </div>
       )}
 
-      {/* トップへ戻るボタン */}
-      <div className={`fixed right-6 bottom-6 z-50 transition-all duration-300 ${showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"}`}>
+      {/*
+        トップへ戻るボタン
+        モバイル(デフォルト)では下から96px(24 * 4px)の位置に配置し、ナビゲーションバー(h-16 = 64px)を回避。
+        PC(lg以上)では下から24px(6 * 4px)の位置に戻す。
+      */}
+      <div className={`fixed right-6 bottom-24 lg:bottom-6 z-50 transition-all duration-300 ${showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"}`}>
         <Button
           onClick={scrollToTop}
           className="rounded-full w-12 h-12 bg-primary text-white shadow-lg hover:bg-primary/90 hover:scale-110 transition-all"

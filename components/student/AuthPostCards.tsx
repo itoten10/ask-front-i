@@ -24,6 +24,8 @@ export interface ApiPost {
   updated_at: string;
   user_name: string | null;
   user_avatar_url: string | null;
+  like_count: number;
+  liked_by_me: boolean;
 }
 
 // 表示用に変換した投稿型
@@ -67,6 +69,9 @@ export function convertApiPostToDisplay(
     none: "",
   };
 
+  // APIからのliked_by_meまたはローカルのlikedPostIdsを使用
+  const isLikedByMe = post.liked_by_me || likedPostIds.has(post.id);
+
   return {
     id: post.id,
     userId: post.user_id,
@@ -76,8 +81,8 @@ export function convertApiPostToDisplay(
     content,
     isViewedByTeacher: false,  // TODO: バックエンドでの閲覧フラグ実装後に対応
     isMyPost: currentUserId === post.user_id,
-    likeCount: 0,  // TODO: いいね機能実装後に対応
-    likedByMe: likedPostIds.has(post.id),
+    likeCount: post.like_count || 0,
+    likedByMe: isLikedByMe,
     isNew: daysDiff <= 1,
     theme: post.problem,
     phases: post.phase_label ? [post.phase_label] : [],

@@ -7,7 +7,7 @@ import { PostDetailModal } from "@/components/student/PostDetailModal";
 import { FeatureInfoModal } from "@/components/student/FeatureInfoModal";
 import { FeaturedPostCard, NoticeCard, StandardPostCard } from "@/components/student/StudentPostCards";
 import { useState, useEffect, useCallback } from "react";
-import { Grip, Loader2 } from "lucide-react";
+import { Grip, Loader2, Medal, ClipboardList } from "lucide-react";
 import QRCode from "qrcode";
 import { apiFetch } from "@/app/lib/api-client";
 import { ApiPost, convertApiPostToDisplay, DisplayPost } from "@/components/student/AuthPostCards";
@@ -201,7 +201,7 @@ export function TeacherMessageView({ accessToken }: TeacherMessageViewProps) {
         <CarouselList
           title='今週注目の "やってみた"'
           subTitle="※AIが自動でピックアップしています"
-          icon="👏"
+          icon={<Medal className="h-8 w-8 text-yellow-500" />}
         >
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -219,7 +219,7 @@ export function TeacherMessageView({ accessToken }: TeacherMessageViewProps) {
 
       {/* 校内掲示板 */}
       <section>
-        <CarouselList title="校内掲示板" icon="📋">
+        <CarouselList title="校内掲示板" icon={<ClipboardList className="h-8 w-8 text-primary/80" />}>
           {notices.map((notice) => (
             <NoticeCard
               key={notice.id}

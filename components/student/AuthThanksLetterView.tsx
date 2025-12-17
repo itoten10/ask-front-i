@@ -8,10 +8,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { User, Check, ArrowLeft, Home, Loader2, AlertCircle } from "lucide-react";
+import { User, Check, ArrowLeft, Home, Loader2, AlertCircle, PenLine, Inbox, Send } from "lucide-react";
 import { ThankYouModal } from "@/components/student/ThankYouModal";
 import { apiFetch } from "@/app/lib/api-client";
-import { ensureAccessToken } from "@/app/lib/session";
+import { ensureAccessToken, fetchMe, MeUser } from "@/app/lib/session";
 
 interface Member {
   id: number;
@@ -21,6 +21,21 @@ interface Member {
   class_name: string | null;
   avatar_url: string | null;
 }
+
+interface ThanksLetter {
+  id: number;
+  sender_user_id: number;
+  sender_name: string;
+  sender_avatar_url: string | null;
+  receiver_user_id: number;
+  receiver_name: string;
+  receiver_avatar_url: string | null;
+  content_1: string;
+  content_2: string | null;
+  created_at: string;
+}
+
+type ViewMode = "write" | "received" | "sent";
 
 interface AuthThanksLetterViewProps {
   onBack?: () => void;
@@ -52,7 +67,27 @@ export function AuthThanksLetterView({ onBack, onComplete }: AuthThanksLetterVie
   const [q2, setQ2] = useState("");
   const [abilities, setAbilities] = useState<string[]>([]);
 
+  // 追加: ビューモード（手紙を書く / 受け取った手紙 / 送った手紙）
+  const [viewMode, setViewMode] = useState<ViewMode>("write");
+  const [receivedLetters, setReceivedLetters] = useState<ThanksLetter[]>([]);
+  const [sentLetters, setSentLetters] = useState<ThanksLetter[]>([]);
+  const [isLoadingLetters, setIsLoadingLetters] = useState(false);
+  const [me, setMe] = useState<MeUser | null>(null);
+
   const selectedMember = remainingMembers.find((m) => m.id === selectedMemberId);
+
+  // ユーザー情報を取得
+  useEffect(() => {
+    const loadMe = async () => {
+      try {
+        const user = await fetchMe();
+        setMe(user);
+      } catch (err) {
+        console.error("ユーザー情報取得エラー:", err);
+      }
+    };
+    loadMe();
+  }, []);
 
   // メンバー一覧を取得
   useEffect(() => {
@@ -88,6 +123,43 @@ export function AuthThanksLetterView({ onBack, onComplete }: AuthThanksLetterVie
 
     fetchMembers();
   }, []);
+
+  // 受け取った手紙 / 送った手紙を取得
+  const fetchLetters = async (type: "received" | "sent") => {
+    setIsLoadingLetters(true);
+    try {
+      const token = await ensureAccessToken();
+      if (!token) return;
+
+      const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT || "http://localhost:8000";
+      const url = `${API_ENDPOINT}/thanks-letters/${type}`;
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (type === "received") {
+          setReceivedLetters(data);
+        } else {
+          setSentLetters(data);
+        }
+      }
+    } catch (err) {
+      console.error(`${type} letters fetch error:`, err);
+    } finally {
+      setIsLoadingLetters(false);
+    }
+  };
+
+  // ビューモード変更時に手紙を取得
+  useEffect(() => {
+    if (viewMode === "received") {
+      fetchLetters("received");
+    } else if (viewMode === "sent") {
+      fetchLetters("sent");
+    }
+  }, [viewMode]);
 
   const handleAbilityChange = (abilityCode: string) => {
     setAbilities((prev) =>
@@ -221,55 +293,182 @@ export function AuthThanksLetterView({ onBack, onComplete }: AuthThanksLetterVie
     );
   }
 
+  // アバターURL取得ヘルパー（手紙用）
+  const getLetterAvatarUrl = (avatarUrl: string | null) => {
+    return avatarUrl || "/avatars/placeholder.png";
+  };
+
+  // 手紙カードのレンダリング
+  const renderLetterCard = (letter: ThanksLetter, isReceived: boolean) => {
+    const avatarUrl = isReceived
+      ? getLetterAvatarUrl(letter.sender_avatar_url)
+      : getLetterAvatarUrl(letter.receiver_avatar_url);
+    const name = isReceived ? letter.sender_name : letter.receiver_name;
+
+    return (
+      <div
+        key={letter.id}
+        className="rounded-xl bg-white p-4 md:p-5 shadow-sm border border-slate-100 transition hover:shadow-md"
+      >
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <Avatar className="h-10 w-10 border border-slate-100 shrink-0">
+              <AvatarImage src={avatarUrl} alt={name} className="object-cover" />
+              <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
+                {name[0]}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="text-sm text-slate-700 truncate">
+                {isReceived ? (
+                  <>
+                    <span className="font-bold text-primary">{letter.sender_name}</span>
+                    <span className="text-slate-500"> さんから</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-bold text-primary">{letter.receiver_name}</span>
+                    <span className="text-slate-500"> さんへ</span>
+                  </>
+                )}
+              </p>
+              <p className="text-xs text-slate-400">
+                {new Date(letter.created_at).toLocaleDateString("ja-JP", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+            </div>
+          </div>
+          {isReceived && (
+            <span className="rounded-full bg-primary/10 px-2 md:px-3 py-1 text-xs font-medium text-primary shrink-0">
+              受信
+            </span>
+          )}
+        </div>
+
+        <div className="space-y-3 pl-0 md:pl-13">
+          <div className="bg-slate-50 rounded-lg p-3 md:p-4">
+            <p className="whitespace-pre-wrap text-sm text-slate-700 leading-relaxed">
+              {letter.content_1}
+            </p>
+          </div>
+          {letter.content_2 && (
+            <div className="bg-slate-50/50 rounded-lg p-3 md:p-4 border-l-2 border-primary/30">
+              <p className="whitespace-pre-wrap text-sm text-slate-600 leading-relaxed">
+                {letter.content_2}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="flex flex-col md:flex-row h-full bg-white animate-in slide-in-from-left-4 duration-500">
+    <div className="flex flex-col h-full bg-white animate-in slide-in-from-left-4 duration-500">
 
       <ThankYouModal open={showThankYou} onClose={() => setShowThankYou(false)} />
 
-      <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-200 bg-white flex flex-col shrink-0 md:h-full z-20">
-        <div className="p-2 md:p-4 border-b border-slate-100 bg-white sticky top-0 z-10">
-           <Button
-             variant="ghost"
-             onClick={onBack}
-             className="text-slate-500 hover:text-slate-800 hover:bg-slate-100 gap-2 px-2 md:px-4 h-10 w-full justify-start"
-           >
-             <ArrowLeft className="w-5 h-5" />
-             <span className="font-bold text-sm md:text-base">ホームに戻る</span>
-           </Button>
+      {/* ヘッダー部分（タブナビゲーション） */}
+      <div className="border-b border-slate-200 bg-white sticky top-0 z-20">
+        <div className="p-2 md:p-4 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            onClick={onBack}
+            className="text-slate-500 hover:text-slate-800 hover:bg-slate-100 gap-2 px-2 md:px-4 h-10"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-bold text-sm md:text-base">ホームに戻る</span>
+          </Button>
         </div>
 
-        <div className="flex flex-col md:flex-1 md:overflow-hidden">
-          <div className="px-4 pt-3 pb-2 md:pt-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              手紙を書く相手を選択
-            </h3>
-          </div>
-
-          <div className="flex flex-row md:flex-col overflow-x-auto md:overflow-y-auto p-2 md:p-3 gap-2 md:space-y-2 bg-slate-50/30 md:h-full scrollbar-hide">
-            {remainingMembers.map((member) => (
-              <div
-                key={member.id}
-                onClick={() => setSelectedMemberId(member.id)}
-                className={`
-                  min-w-[200px] md:min-w-0 p-3 rounded-lg flex items-center gap-3 cursor-pointer transition-all duration-200 border shrink-0
-                  ${selectedMemberId === member.id
-                    ? "bg-purple-50 border-primary shadow-sm ring-1 ring-primary/20"
-                    : "bg-white border-transparent hover:border-slate-200 hover:shadow-sm"}
-                `}
-              >
-                <Avatar className="h-10 w-10 border border-slate-100 bg-slate-50">
-                  <AvatarImage src={getAvatarUrl(member)} />
-                  <AvatarFallback className="bg-slate-200 text-slate-500">{member.full_name[0]}</AvatarFallback>
-                </Avatar>
-                <div className="text-left">
-                  <p className="font-bold text-sm text-slate-900 leading-tight">{member.full_name}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{getRoleText(member)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* タブ */}
+        <div className="flex px-2 md:px-4 pb-0 gap-0.5 md:gap-1 overflow-x-auto scrollbar-hide">
+          <button
+            onClick={() => setViewMode("write")}
+            className={`flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${
+              viewMode === "write"
+                ? "border-primary text-primary"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            <PenLine className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            <span className="hidden xs:inline">手紙を</span>書く
+          </button>
+          <button
+            onClick={() => setViewMode("received")}
+            className={`flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${
+              viewMode === "received"
+                ? "border-primary text-primary"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            <Inbox className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            受け取った
+            {receivedLetters.length > 0 && (
+              <span className="ml-0.5 md:ml-1 bg-primary/10 text-primary text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full">
+                {receivedLetters.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setViewMode("sent")}
+            className={`flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-2.5 md:py-3 text-xs md:text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${
+              viewMode === "sent"
+                ? "border-primary text-primary"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            <Send className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            送った
+            {sentLetters.length > 0 && (
+              <span className="ml-0.5 md:ml-1 bg-slate-100 text-slate-600 text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full">
+                {sentLetters.length}
+              </span>
+            )}
+          </button>
         </div>
       </div>
+
+      {/* コンテンツエリア */}
+      {viewMode === "write" ? (
+        // 手紙を書くビュー
+        <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+          <div className="w-full lg:w-72 xl:w-80 border-b lg:border-b-0 lg:border-r border-slate-200 bg-white flex flex-col shrink-0 lg:h-full">
+            <div className="flex flex-col lg:flex-1 lg:overflow-hidden">
+              <div className="px-4 pt-3 pb-2 lg:pt-4">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  手紙を書く相手を選択
+                </h3>
+              </div>
+
+              <div className="flex flex-row lg:flex-col overflow-x-auto lg:overflow-y-auto p-2 lg:p-3 gap-2 lg:space-y-2 bg-slate-50/30 lg:h-full scrollbar-hide">
+                {remainingMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    onClick={() => setSelectedMemberId(member.id)}
+                    className={`
+                      min-w-[180px] lg:min-w-0 p-2.5 lg:p-3 rounded-lg flex items-center gap-2.5 lg:gap-3 cursor-pointer transition-all duration-200 border shrink-0
+                      ${selectedMemberId === member.id
+                        ? "bg-purple-50 border-primary shadow-sm ring-1 ring-primary/20"
+                        : "bg-white border-transparent hover:border-slate-200 hover:shadow-sm"}
+                    `}
+                  >
+                    <Avatar className="h-9 w-9 lg:h-10 lg:w-10 border border-slate-100 bg-slate-50">
+                      <AvatarImage src={getAvatarUrl(member)} />
+                      <AvatarFallback className="bg-slate-200 text-slate-500">{member.full_name[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="text-left">
+                      <p className="font-bold text-sm text-slate-900 leading-tight">{member.full_name}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{getRoleText(member)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
 
       <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-white">
         {selectedMember ? (
@@ -385,6 +584,65 @@ export function AuthThanksLetterView({ onBack, onComplete }: AuthThanksLetterVie
           </div>
         )}
       </div>
+        </div>
+      ) : (
+        // 受け取った手紙 / 送った手紙ビュー
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50/50">
+          <div className="max-w-3xl mx-auto">
+            {isLoadingLetters ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+                <p className="text-slate-500">読み込み中...</p>
+              </div>
+            ) : viewMode === "received" ? (
+              // 受け取った手紙
+              receivedLetters.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <Inbox className="w-16 h-16 text-slate-200 mb-4" />
+                  <h3 className="text-lg font-bold text-slate-700 mb-2">まだ手紙を受け取っていません</h3>
+                  <p className="text-slate-500 text-sm">
+                    チームメンバーから感謝の手紙が届くとここに表示されます
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold text-slate-800">受け取った手紙</h2>
+                    <span className="text-sm text-slate-500">{receivedLetters.length}件</span>
+                  </div>
+                  {receivedLetters.map((letter) => renderLetterCard(letter, true))}
+                </div>
+              )
+            ) : (
+              // 送った手紙
+              sentLetters.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <Send className="w-16 h-16 text-slate-200 mb-4" />
+                  <h3 className="text-lg font-bold text-slate-700 mb-2">まだ手紙を送っていません</h3>
+                  <p className="text-slate-500 text-sm mb-6">
+                    チームメンバーに感謝の気持ちを伝えましょう
+                  </p>
+                  <Button
+                    onClick={() => setViewMode("write")}
+                    className="bg-primary hover:bg-primary/90 text-white gap-2"
+                  >
+                    <PenLine className="w-4 h-4" />
+                    手紙を書く
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold text-slate-800">送った手紙</h2>
+                    <span className="text-sm text-slate-500">{sentLetters.length}件</span>
+                  </div>
+                  {sentLetters.map((letter) => renderLetterCard(letter, false))}
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
