@@ -137,6 +137,9 @@ export function AuthTeacherHomeView({ accessToken, filters, onFilterReset }: Aut
   const [selectedStudentName, setSelectedStudentName] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
 
+  // タブの状態管理 (デフォルトは "progress")
+  const [activeTab, setActiveTab] = useState<string>("progress");
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
@@ -371,6 +374,7 @@ export function AuthTeacherHomeView({ accessToken, filters, onFilterReset }: Aut
       />
 
       {/* 生徒詳細シート (選択状態に応じて表示) */}
+      {/* activeTab を渡し、進捗タブ/非認知タブのどちらから開かれたかを判別して表示を切り替える */}
       <StudentDetailSheet
         isOpen={!!selectedStudentId}
         onClose={() => setSelectedStudentId(null)}
@@ -380,6 +384,7 @@ export function AuthTeacherHomeView({ accessToken, filters, onFilterReset }: Aut
         studentClass={selectedStudentClass}
         accessToken={accessToken}
         onHistoryClick={handleShowHistory}
+        activeTab={activeTab}
       />
 
       {/* Header Actions */}
@@ -407,7 +412,8 @@ export function AuthTeacherHomeView({ accessToken, filters, onFilterReset }: Aut
         </div>
       </div>
 
-      <Tabs defaultValue="progress" className="flex-1 flex flex-col min-h-0 gap-0">
+      {/* Tabs の状態を管理し、onValueChange で activeTab を更新 */}
+      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val)} className="flex-1 flex flex-col min-h-0 gap-0">
         <div className="flex w-full items-end gap-0 shrink-0">
           <TabsList className="flex-1 justify-start p-0 gap-0 mb-0 h-auto bg-white border border-slate-200 border-b-0 rounded-none overflow-hidden shadow-none">
             <TabsTrigger value="progress" className="rounded-none px-6 py-3 font-bold text-sm data-[state=active]:bg-primary data-[state=active]:text-white data-[state=inactive]:bg-white data-[state=inactive]:text-primary transition-all border-0">

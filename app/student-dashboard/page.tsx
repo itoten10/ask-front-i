@@ -6,7 +6,7 @@
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CarouselList } from "@/components/student/CarouselList";
-import { Grip, ArrowUp, Loader2, AlertCircle } from "lucide-react";
+import { Grip, ArrowUp, Loader2, AlertCircle, Medal, PenTool, Mail, ClipboardList } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useState, useEffect, useRef, useCallback } from "react";
 import QRCode from "qrcode";
@@ -90,12 +90,18 @@ export default function StudentDashboardPage() {
   // 感謝の手紙の残り枚数 (初期値3)
   const [thanksCount, setThanksCount] = useState(3);
 
+  // 投稿フォームの開閉ステート
+  const [isPostFormOpen, setIsPostFormOpen] = useState(false);
+
   // 投稿完了時にスクロールするためのRef
   const allPostsRef = useRef<HTMLDivElement>(null);
 
   // スクロールトップボタンの表示切替用
   const [showScrollTop, setShowScrollTop] = useState(false);
   const mainScrollRef = useRef<HTMLDivElement>(null);
+
+  // 注目セクションのRef（モバイルナビ用）
+  const featuredRef = useRef<HTMLDivElement>(null);
 
   // QRコードの生成
   useEffect(() => {
@@ -120,13 +126,9 @@ export default function StudentDashboardPage() {
         const userData = await fetchMe();
         setUser(userData);
 
-        // 生徒以外はリダイレクト
-        if (userData.role !== "student") {
-          if (userData.role === "teacher") {
-            router.push("/teacher-dashboard");
-          } else if (userData.role === "admin") {
-            router.push("/admin");
-          }
+        // 教師はリダイレクト（管理者は両方のダッシュボードにアクセス可能）
+        if (userData.role === "teacher") {
+          router.push("/teacher-dashboard");
           return;
         }
       } catch (error) {
@@ -161,8 +163,14 @@ export default function StudentDashboardPage() {
         token
       );
 
+      // いいね状態をAPIレスポンスから初期化
+      const initialLikedPosts = new Set<number>(
+        response.posts.filter(post => post.liked_by_me).map(post => post.id)
+      );
+      setLikedPosts(initialLikedPosts);
+
       const displayPosts = response.posts.map((post) =>
-        convertApiPostToDisplay(post, user.id, likedPosts)
+        convertApiPostToDisplay(post, user.id, initialLikedPosts)
       );
 
       setPosts(displayPosts);
@@ -176,7 +184,7 @@ export default function StudentDashboardPage() {
     } finally {
       setIsLoadingPosts(false);
     }
-  }, [user, likedPosts, router]);
+  }, [user, router]);
 
   useEffect(() => {
     if (user) {
@@ -212,15 +220,65 @@ export default function StudentDashboardPage() {
     }, 100);
   };
 
-  const handleLike = (postId: number) => {
-    // TODO: いいね機能のAPI実装後に対応
+  const handleLike = async (postId: number) => {
+    const isCurrentlyLiked = likedPosts.has(postId);
+
+    // 楽観的UI更新
     const newLiked = new Set(likedPosts);
-    if (newLiked.has(postId)) {
+    if (isCurrentlyLiked) {
       newLiked.delete(postId);
     } else {
       newLiked.add(postId);
     }
     setLikedPosts(newLiked);
+
+    // 投稿のいいね数も楽観的に更新
+    setPosts(prevPosts =>
+      prevPosts.map(post =>
+        post.id === postId
+          ? {
+              ...post,
+              likeCount: isCurrentlyLiked ? post.likeCount - 1 : post.likeCount + 1,
+              likedByMe: !isCurrentlyLiked
+            }
+          : post
+      )
+    );
+
+    try {
+      const token = await ensureAccessToken();
+      const method = isCurrentlyLiked ? "DELETE" : "POST";
+
+      // apiFetchは成功時にJSONデータを直接返し、エラー時は例外をスロー
+      const data = await apiFetch<{ post_id: number; like_count: number; liked_by_me: boolean }>(
+        `/posts/${postId}/like`,
+        {
+          method,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // レスポンスからいいね数を更新（サーバーの正確な値を反映）
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post.id === postId
+            ? { ...post, likeCount: data.like_count, likedByMe: data.liked_by_me }
+            : post
+        )
+      );
+    } catch (error) {
+      console.error("いいね処理に失敗:", error);
+      // エラー時はロールバック
+      const rollbackLiked = new Set(likedPosts);
+      if (isCurrentlyLiked) {
+        rollbackLiked.add(postId);
+      } else {
+        rollbackLiked.delete(postId);
+      }
+      setLikedPosts(rollbackLiked);
+    }
   };
 
   // スクロールイベントハンドラ
@@ -247,6 +305,24 @@ export default function StudentDashboardPage() {
   // 手紙送信完了時のハンドラ
   const handleThanksComplete = () => {
     setThanksCount((prev) => Math.max(0, prev - 1));
+  };
+
+  // モバイルナビ用のハンドラー
+  const handleMobileScrollToFeatured = () => {
+    setCurrentView("home");
+    setTimeout(() => {
+      if (featuredRef.current) {
+        featuredRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 50);
+  };
+
+  const handleMobileOpenPost = () => {
+    setCurrentView("home");
+    setTimeout(() => {
+      scrollToTop();
+      setIsPostFormOpen(true);
+    }, 50);
   };
 
   // ローディング中
@@ -318,7 +394,13 @@ export default function StudentDashboardPage() {
 
       <div className="flex-1 flex flex-col h-full min-w-0 relative">
         {/* ヘッダー */}
-        <Header onNavigate={handleNavigate} badgeCount={thanksCount} />
+        <Header
+          onNavigate={handleNavigate}
+          badgeCount={thanksCount}
+          userName={user.full_name}
+          userAvatar={user.avatar_url || undefined}
+          userRole="student"
+        />
 
         {/* ユーザー情報バー */}
         <div className="bg-white border-b border-slate-200 px-4 md:px-8 py-3 flex items-center gap-4">
@@ -344,7 +426,7 @@ export default function StudentDashboardPage() {
           id="student-main-scroll"
           ref={mainScrollRef}
           onScroll={handleScroll}
-          className={`flex-1 overflow-y-auto bg-slate-50/50 scroll-smooth ${currentView === 'home' ? 'p-4 md:p-8' : 'p-0'}`}
+          className={`flex-1 overflow-y-auto bg-slate-50/50 scroll-smooth ${currentView === 'home' ? 'p-4 md:p-8 pb-24 md:pb-8' : 'p-0'}`}
         >
           {currentView === "home" ? (
             // Home (Feed) View
@@ -355,13 +437,16 @@ export default function StudentDashboardPage() {
                 userName={user.full_name}
                 userAvatar={user.avatar_url || undefined}
                 onSubmit={handlePostSubmit}
+                isOpen={isPostFormOpen}
+                onOpenChange={setIsPostFormOpen}
               />
 
               {/* 今週の注目 */}
+              <div ref={featuredRef}>
               <CarouselList
                 title="今週注目の &quot;やってみた&quot;"
                 subTitle="※最新の投稿を表示しています"
-                icon="👏"
+                icon={<Medal className="h-8 w-8 text-yellow-500" />}
               >
                 {isLoadingPosts && featuredPosts.length === 0 ? (
                   // ローディング中のプレースホルダー
@@ -374,9 +459,10 @@ export default function StudentDashboardPage() {
                   ))
                 )}
               </CarouselList>
+              </div>
 
               {/* 校内掲示板 */}
-              <CarouselList title="校内掲示板" icon="📋">
+              <CarouselList title="校内掲示板" icon={<ClipboardList className="h-8 w-8 text-primary/80" />}>
                 {notices.map((notice) => (
                   <NoticeCard key={notice.id} notice={notice} qrCodeUrl={qrCodes[notice.id]} onClick={() => setShowNoticeInfo(true)} />
                 ))}
@@ -457,8 +543,44 @@ export default function StudentDashboardPage() {
           )}
         </main>
 
+        {/*
+          モバイル用下部ナビゲーションバー
+          - 背景: bg-primary (紫)
+          - 両脇アイコン: text-white (白)
+          - 中央投稿ボタン: bg-white (白) + text-primary (紫) + border-primary (紫の枠線で背景に馴染ませる)
+        */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-primary border-t border-primary/20 z-50 flex items-center justify-around px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+          {/* 左: 注目へのジャンプ */}
+          <button
+            onClick={handleMobileScrollToFeatured}
+            className="flex items-center justify-center w-16 h-full text-white hover:text-white/80 transition-colors"
+            title="注目"
+          >
+            <Medal className="w-8 h-8" />
+          </button>
+
+          {/* 中央: 投稿フォーム展開 */}
+          <button
+            onClick={handleMobileOpenPost}
+            className="flex items-center justify-center w-16 h-16 rounded-full bg-white text-primary shadow-xl -mt-8 border-[6px] border-primary active:scale-95 transition-transform"
+            title="投稿する"
+          >
+            <PenTool className="w-7 h-7" />
+          </button>
+
+          {/* 右: 感謝の手紙 */}
+          <button
+            onClick={() => handleNavigate("thanks")}
+            className={`flex items-center justify-center w-16 h-full transition-colors ${currentView === "thanks" ? "text-white opacity-100" : "text-white hover:text-white/80"}`}
+            title="感謝の手紙"
+          >
+            <Mail className="w-8 h-8" />
+          </button>
+        </div>
+
+        {/* スクロールトップボタン */}
         {currentView === "home" && (
-          <div className={`fixed bottom-6 right-6 z-40 transition-all duration-300 ${showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"}`}>
+          <div className={`fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 transition-all duration-300 ${showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"}`}>
             <Button onClick={scrollToTop} className="rounded-full w-12 h-12 bg-primary text-white shadow-lg hover:bg-primary/90 hover:scale-110 transition-all" size="icon">
               <ArrowUp className="w-6 h-6" />
             </Button>

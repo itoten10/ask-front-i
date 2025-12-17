@@ -34,6 +34,8 @@ interface AuthPostFormProps {
   userAvatar?: string;
   onSubmit: (data: PostFormData) => Promise<void>;
   isLoading?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export interface PostFormData {
@@ -46,9 +48,18 @@ export interface PostFormData {
   ability_codes?: string[];  // 非認知能力コード（自動判定用、今は空）
 }
 
-export function AuthPostForm({ userName, userAvatar, onSubmit, isLoading = false }: AuthPostFormProps) {
+export function AuthPostForm({ userName, userAvatar, onSubmit, isLoading = false, isOpen, onOpenChange }: AuthPostFormProps) {
   const avatarSrc = userAvatar || "/avatars/placeholder.png";
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [internalExpanded, setInternalExpanded] = useState(false);
+
+  // 外部制御と内部制御の両方をサポート
+  const isExpanded = isOpen !== undefined ? isOpen : internalExpanded;
+  const setIsExpanded = (value: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(value);
+    }
+    setInternalExpanded(value);
+  };
   const [showThankYou, setShowThankYou] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
@@ -137,33 +148,33 @@ export function AuthPostForm({ userName, userAvatar, onSubmit, isLoading = false
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="flex p-6 gap-6">
-                <div className="shrink-0">
-                  <Avatar className="h-14 w-14 border-2 border-slate-100">
+              <div className="flex p-4 md:p-6 gap-3 md:gap-6">
+                <div className="shrink-0 hidden sm:block">
+                  <Avatar className="h-12 w-12 md:h-14 md:w-14 border-2 border-slate-100">
                     <AvatarImage src={avatarSrc} alt="My Avatar" />
                     <AvatarFallback>{userName?.[0] || "私"}</AvatarFallback>
                   </Avatar>
                 </div>
 
-                <div className="flex-1 space-y-6">
+                <div className="flex-1 space-y-4 md:space-y-6">
                   {/* フェーズ選択（単一選択に変更） */}
                   <div className="space-y-2 relative">
-                     <div className="flex justify-between items-center">
-                       <label className="text-sm font-bold text-slate-800">
+                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
+                       <label className="text-xs sm:text-sm font-bold text-slate-800">
                          現在の探究学習のフェーズを教えてください。<span className="text-red-500">*</span>
                        </label>
                        <button
                          type="button"
                          onClick={() => setIsExpanded(false)}
-                         className="text-xs text-primary font-bold hover:underline"
+                         className="text-xs text-primary font-bold hover:underline self-end sm:self-auto"
                          disabled={isSubmitting}
                        >
                          折りたたむ
                        </button>
                      </div>
-                     <div className="flex flex-wrap gap-3">
+                     <div className="flex flex-wrap gap-2 sm:gap-3">
                        {PHASE_LABELS.map((phase) => (
-                         <label key={phase} className="flex items-center gap-2 cursor-pointer select-none">
+                         <label key={phase} className="flex items-center gap-1.5 sm:gap-2 cursor-pointer select-none">
                            <div
                              className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
                                selectedPhase === phase
@@ -174,7 +185,7 @@ export function AuthPostForm({ userName, userAvatar, onSubmit, isLoading = false
                            >
                              {selectedPhase === phase && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
                            </div>
-                           <span className="text-sm text-slate-600">{phase}</span>
+                           <span className="text-xs sm:text-sm text-slate-600">{phase}</span>
                          </label>
                        ))}
                      </div>
@@ -182,55 +193,55 @@ export function AuthPostForm({ userName, userAvatar, onSubmit, isLoading = false
 
                   {/* テーマ */}
                   <div className="space-y-2">
-                     <label className="text-sm font-bold text-slate-800">
+                     <label className="text-xs sm:text-sm font-bold text-slate-800">
                        取り組んでいるテーマ・問いを教えてください。
                      </label>
                      <Input
                        value={themeInput}
                        onChange={(e) => setThemeInput(e.target.value)}
                        placeholder="例：なぜ○○は効果的なのだろうか？"
-                       className="bg-white border-slate-300 focus-visible:ring-primary/30"
+                       className="bg-white border-slate-300 focus-visible:ring-primary/30 text-sm"
                        disabled={isSubmitting}
                      />
                   </div>
 
                   {/* 3段構成入力 */}
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                      <div className="space-y-1">
-                       <label className="text-sm font-bold text-slate-800">
+                       <label className="text-xs sm:text-sm font-bold text-slate-800">
                          何をやってみた？なぜそれをやったの？どんな気づきがあった？詳しく書いてみよう<span className="text-red-500">*</span>
                        </label>
-                       <p className="text-xs text-slate-500 font-medium">
+                       <p className="text-[10px] sm:text-xs text-slate-500 font-medium">
                          結果の良し悪しは問いません。あなたの&quot;やってみた&quot;に価値があります！
                        </p>
                      </div>
                      <div className="flex gap-2">
-                       <span className="text-slate-300 font-serif italic pt-1">①</span>
+                       <span className="text-slate-300 font-serif italic pt-1 text-sm sm:text-base">①</span>
                        <Textarea
                          value={content1}
                          onChange={(e) => setContent1(e.target.value)}
                          placeholder="例：今日少し調べたこと、チームで話したこと..."
-                         className="min-h-[80px] resize-none border-slate-300 focus-visible:ring-primary/30"
+                         className="min-h-[70px] sm:min-h-[80px] resize-none border-slate-300 focus-visible:ring-primary/30 text-sm"
                          disabled={isSubmitting}
                        />
                      </div>
                      <div className="flex gap-2">
-                       <span className="text-slate-300 font-serif italic pt-1">②</span>
+                       <span className="text-slate-300 font-serif italic pt-1 text-sm sm:text-base">②</span>
                        <Textarea
                          value={content2}
                          onChange={(e) => setContent2(e.target.value)}
                          placeholder="他にもあれば"
-                         className="min-h-[60px] resize-none border-slate-300 focus-visible:ring-primary/30"
+                         className="min-h-[50px] sm:min-h-[60px] resize-none border-slate-300 focus-visible:ring-primary/30 text-sm"
                          disabled={isSubmitting}
                        />
                      </div>
                      <div className="flex gap-2">
-                       <span className="text-slate-300 font-serif italic pt-1">③</span>
+                       <span className="text-slate-300 font-serif italic pt-1 text-sm sm:text-base">③</span>
                        <Textarea
                          value={content3}
                          onChange={(e) => setContent3(e.target.value)}
                          placeholder="他にもあれば"
-                         className="min-h-[60px] resize-none border-slate-300 focus-visible:ring-primary/30"
+                         className="min-h-[50px] sm:min-h-[60px] resize-none border-slate-300 focus-visible:ring-primary/30 text-sm"
                          disabled={isSubmitting}
                        />
                      </div>
@@ -238,10 +249,10 @@ export function AuthPostForm({ userName, userAvatar, onSubmit, isLoading = false
 
                   {/* 問いの変化 */}
                   <div className="space-y-2">
-                     <label className="text-sm font-bold text-slate-800">
+                     <label className="text-xs sm:text-sm font-bold text-slate-800">
                        もともと設定していた問いはどうなりましたか？
                      </label>
-                     <div className="space-y-2">
+                     <div className="space-y-1.5 sm:space-y-2">
                        {QUESTION_STATE_OPTIONS.map((option) => (
                          <label key={option.value} className="flex items-center gap-2 cursor-pointer group">
                            <div
@@ -254,7 +265,7 @@ export function AuthPostForm({ userName, userAvatar, onSubmit, isLoading = false
                            >
                              {questionState === option.value && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
                            </div>
-                           <span className="text-sm text-slate-700">{option.label}</span>
+                           <span className="text-xs sm:text-sm text-slate-700">{option.label}</span>
                          </label>
                        ))}
                      </div>

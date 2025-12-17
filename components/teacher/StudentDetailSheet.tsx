@@ -40,6 +40,7 @@ interface StudentDetailSheetProps {
   studentClass?: string | null;
   accessToken: string | null;
   onHistoryClick: () => void;
+  activeTab?: string;
 }
 
 // 能力コードと日本語名のマッピング（DBのコードに合わせる）
@@ -82,8 +83,11 @@ export function StudentDetailSheet({
   studentGrade,
   studentClass,
   accessToken,
-  onHistoryClick
+  onHistoryClick,
+  activeTab
 }: StudentDetailSheetProps) {
+  // 進捗タブから開いたかどうか（将来的に表示内容の切り替えに使用）
+  const isProgressMode = activeTab === "progress";
 
   const [abilityData, setAbilityData] = useState<Record<string, number> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -179,67 +183,72 @@ export function StudentDetailSheet({
 
             <div className="flex-1 overflow-y-auto">
 
-              <div className="px-6 pt-6 pb-2">
-                <h3 className="text-xs font-bold text-slate-400 mb-2 flex items-center gap-2">
-                  <span className="w-1 h-3 bg-primary rounded-full" />
-                  非認知能力スコア
-                </h3>
-                {isLoading ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                ) : chartData.length > 0 ? (
-                  <div className="w-full flex justify-center">
-                    <ChartContainer
-                      config={chartConfig}
-                      className="aspect-square w-full max-w-[280px]"
-                    >
-                      <RadarChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
-                        <ChartTooltip
-                          cursor={false}
-                          content={<ChartTooltipContent />}
-                        />
-                        <PolarGrid
-                          gridType="polygon"
-                          className="stroke-slate-200"
-                          strokeWidth={1}
-                        />
-                        <PolarAngleAxis
-                          dataKey="subject"
-                          tick={{ fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: '600' }}
-                        />
-                        <PolarRadiusAxis domain={[0, CHART_MAX]} tickCount={5} tick={false} axisLine={false} />
-                        <Radar
-                          dataKey="score"
-                          fill="var(--color-score)"
-                          fillOpacity={0.3}
-                          stroke="var(--color-score)"
-                          strokeWidth={2.5}
-                          dot={{ r: 3, fillOpacity: 1, strokeWidth: 0 }}
-                        />
-                      </RadarChart>
-                    </ChartContainer>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-slate-400 text-sm">
-                    データがありません
-                  </div>
-                )}
-              </div>
+              {/* 非認知タブから開いた場合のみレーダーチャートを表示 */}
+              {!isProgressMode && (
+                <div className="px-6 pt-6 pb-2">
+                  <h3 className="text-xs font-bold text-slate-400 mb-2 flex items-center gap-2">
+                    <span className="w-1 h-3 bg-primary rounded-full" />
+                    非認知能力スコア
+                  </h3>
+                  {isLoading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : chartData.length > 0 ? (
+                    <div className="w-full flex justify-center">
+                      <ChartContainer
+                        config={chartConfig}
+                        className="aspect-square w-full max-w-[280px]"
+                      >
+                        <RadarChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
+                          <ChartTooltip
+                            cursor={false}
+                            content={<ChartTooltipContent />}
+                          />
+                          <PolarGrid
+                            gridType="polygon"
+                            className="stroke-slate-200"
+                            strokeWidth={1}
+                          />
+                          <PolarAngleAxis
+                            dataKey="subject"
+                            tick={{ fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: '600' }}
+                          />
+                          <PolarRadiusAxis domain={[0, CHART_MAX]} tickCount={5} tick={false} axisLine={false} />
+                          <Radar
+                            dataKey="score"
+                            fill="var(--color-score)"
+                            fillOpacity={0.3}
+                            stroke="var(--color-score)"
+                            strokeWidth={2.5}
+                            dot={{ r: 3, fillOpacity: 1, strokeWidth: 0 }}
+                          />
+                        </RadarChart>
+                      </ChartContainer>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-slate-400 text-sm">
+                      データがありません
+                    </div>
+                  )}
+                </div>
+              )}
 
-              <div className="px-6 pb-10 space-y-6">
+              <div className={`px-6 pb-10 space-y-6 ${isProgressMode ? 'pt-6' : ''}`}>
 
                 <section>
                   <div className="flex items-center gap-2 mb-2">
                     <div className="bg-purple-50 p-1 rounded-md">
                       <Bot className="w-3.5 h-3.5 text-primary" />
                     </div>
-                    <h3 className="font-bold text-slate-800 text-sm">AIによる活動サマリー</h3>
+                    <h3 className="font-bold text-slate-800 text-sm">
+                      {isProgressMode ? "探究活動プロセスとしての活動サマリー" : "AIによる活動サマリー"}
+                    </h3>
                   </div>
                   <div className="bg-slate-50 p-5 border border-slate-100 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
                     <p className="text-sm text-slate-700 leading-relaxed text-justify">
-                      この機能はMVP Phase 2で実装予定です。投稿内容やフェーズの進み方をもとに、生徒の活動傾向や強み・改善点をAIが分析してサマリーを生成します。
+                      この機能はMVP Phase 2で実装予定です。投稿内容やフェーズの進み方をもとに、生徒の活動傾向や改善点をAIが分析してサマリーを生成します。
                     </p>
                     <div className="mt-4 pt-3 border-t border-slate-200/60 flex justify-end">
                       <span className="text-[10px] text-slate-400 font-medium">集計期間: 2025/04/01 - 現在</span>
