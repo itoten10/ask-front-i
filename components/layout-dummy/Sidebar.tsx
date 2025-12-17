@@ -1,4 +1,4 @@
-// ask-front-i/components/layout/Sidebar.tsx
+// ask-front-i/components/layout-dummy/Sidebar.tsx
 
 "use client";
 

@@ -10,11 +10,9 @@ import { FeaturedPostCard, NoticeCard, StandardPostCard } from "@/components/stu
 import { PostDetailModal } from "@/components/student-dummy/PostDetailModal";
 import { FeatureInfoModal } from "@/components/student-dummy/FeatureInfoModal";
 import { ThanksLetterView } from "@/components/student-dummy/ThanksLetterView";
-// UIコンポーネントは共通のままでOK
 import { Button } from "@/components/ui/button";
 
-// 変更点: Medal, ClipboardList を追加インポート
-import { Grip, ArrowUp, Medal, ClipboardList } from "lucide-react"; 
+import { Grip, ArrowUp, Medal, ClipboardList, PenTool, Mail } from "lucide-react"; 
 import { useState, useEffect, useRef } from "react";
 import QRCode from "qrcode";
 
@@ -56,8 +54,13 @@ export default function StudentPage() {
   // 感謝の手紙の残り枚数 (初期値3)
   const [thanksCount, setThanksCount] = useState(3);
 
-  // 投稿完了時にスクロールするためのRef
+  // 投稿フォームの開閉ステート
+  const [isPostFormOpen, setIsPostFormOpen] = useState(false);
+
+  // Refs
   const allPostsRef = useRef<HTMLDivElement>(null);
+  const mainScrollRef = useRef<HTMLDivElement>(null);
+  const featuredRef = useRef<HTMLDivElement>(null);
 
   // ==========================================
   // Dummy Data
@@ -108,18 +111,13 @@ export default function StudentPage() {
     { id: 6, date: "11/10", labName: "図書委員会", title: "読書感想文コンクールの作品募集", deadline: "11/30", url: "https://library.example.com/contest" },
   ];
 
-  // State管理
+  // State
   const [posts, setPosts] = useState<Post[]>(allPostsDummy);
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
-  
-  // モーダル用State
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [showNoticeInfo, setShowNoticeInfo] = useState(false); 
   const [showCommentInfo, setShowCommentInfo] = useState(false); 
-
-  // スクロールトップボタンの表示切替用
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const mainScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const generateQRs = async () => {
@@ -135,7 +133,6 @@ export default function StudentPage() {
     };
     generateQRs();
 
-    // [Backend Integration] ユーザーがいいねした投稿IDリストをAPIから取得してセットする
     const initialLiked = new Set<number>();
     posts.forEach(post => {
       if (post.likedByMe) initialLiked.add(post.id);
@@ -143,26 +140,14 @@ export default function StudentPage() {
     setLikedPosts(initialLiked);
   }, []);
 
-  // 投稿ハンドラ
+  // Handlers
   const handlePostSubmit = (data: any) => {
-    // TODO(BE): Implement Zod validation before sending
-    // const result = postSchema.safeParse(data);
-    // if (!result.success) { ... handle errors ... }
-
-    // [Backend Integration] ここで API (POST /api/posts) を叩いてDBに保存する
-    // const response = await fetch('/api/posts', { 
-    //   method: 'POST', 
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(data) 
-    // });
-    
-    // MVP: フロントエンドのStateのみ更新（リロードで消える）
+    // Backend Integration Placeholder...
     const newPost: Post = {
       id: Date.now(),
       labName: "メディアラボ", 
       authorName: data.isAnonymous ? "匿名" : "髙橋 由華",
       content: data.content,
-      // NOTE(SECURITY): Sanitize input content to prevent XSS if displaying as HTML
       isViewedByTeacher: false,
       isAnonymous: data.isAnonymous,
       isMyPost: true,
@@ -174,17 +159,14 @@ export default function StudentPage() {
     };
     setPosts([newPost, ...posts]);
 
-    // ★追加: 投稿完了後に全投稿エリア（自分の投稿が反映される場所）まで自動スクロール
-    // ユーザーに「投稿できた感」を与える演出
     setTimeout(() => {
       if (allPostsRef.current) {
         allPostsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
       }
-    }, 100); // モーダルが閉じた後のタイミング調整
+    }, 100);
   };
 
   const handleLike = (postId: number) => {
-    // [Backend Integration] ここで API (POST/DELETE /api/posts/{id}/like) を叩く
     const newLiked = new Set(likedPosts);
     if (newLiked.has(postId)) {
       newLiked.delete(postId);
@@ -194,7 +176,6 @@ export default function StudentPage() {
     setLikedPosts(newLiked);
   };
 
-  // スクロールイベントハンドラ
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (e.currentTarget.scrollTop > 300) {
       setShowScrollTop(true);
@@ -203,27 +184,41 @@ export default function StudentPage() {
     }
   };
 
-  // トップへ戻る関数
   const scrollToTop = () => {
     if (mainScrollRef.current) {
       mainScrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
-  // 画面遷移ハンドラ
   const handleNavigate = (view: "home" | "thanks") => {
     setCurrentView(view);
   };
 
-  // 手紙送信完了時のハンドラ
   const handleThanksComplete = () => {
     setThanksCount((prev) => Math.max(0, prev - 1));
+  };
+
+  // モバイルナビ用のハンドラー
+  const handleMobileScrollToFeatured = () => {
+    setCurrentView("home");
+    setTimeout(() => {
+      if (featuredRef.current) {
+        featuredRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 50);
+  };
+
+  const handleMobileOpenPost = () => {
+    setCurrentView("home");
+    setTimeout(() => {
+        scrollToTop();
+        setIsPostFormOpen(true);
+    }, 50);
   };
 
   return (
     <div className="flex h-screen bg-background font-sans overflow-hidden">
       
-      {/* 詳細モーダル (クリック時に表示) */}
       <PostDetailModal 
         post={selectedPost} 
         isOpen={!!selectedPost} 
@@ -232,7 +227,6 @@ export default function StudentPage() {
         onLike={handleLike}
       />
 
-      {/* 掲示板用機能のお知らせモーダル */}
       <FeatureInfoModal 
         open={showNoticeInfo} 
         onClose={() => setShowNoticeInfo(false)}
@@ -240,7 +234,6 @@ export default function StudentPage() {
         description={<>MVP内では詳細は非表示ですが、<br/>フェーズ2で各ゼミのアンケートなどを<br/>ここに反映予定です。</>}
       />
 
-      {/* コメント用機能のお知らせモーダル */}
       <FeatureInfoModal
         open={showCommentInfo}
         onClose={() => setShowCommentInfo(false)}
@@ -248,7 +241,6 @@ export default function StudentPage() {
         description={<>MVP内ではコメント機能は非表示ですが、<br /><strong>投稿数UP</strong>や<strong>生徒同士の情報共有</strong>を<br />促進するためにフェーズ2以降で実装予定です。</>}
       />
 
-      {/* サイドバー: badgeCount を渡す */}
       <Sidebar 
         userRole="student" 
         className="hidden md:flex flex-col h-full shrink-0" 
@@ -257,34 +249,37 @@ export default function StudentPage() {
       />
 
       <div className="flex-1 flex flex-col h-full min-w-0 relative">
-        {/* ヘッダー: badgeCount を渡す (スマホメニュー用) */}
         <Header onNavigate={handleNavigate} badgeCount={thanksCount} />
 
         <main 
           id="student-main-scroll"
           ref={mainScrollRef}
           onScroll={handleScroll}
-          className={`flex-1 overflow-y-auto bg-slate-50/50 scroll-smooth ${currentView === 'home' ? 'p-4 md:p-8' : 'p-0'}`}
+          className={`flex-1 overflow-y-auto bg-slate-50/50 scroll-smooth ${currentView === 'home' ? 'p-4 md:p-8 pb-24 md:pb-8' : 'p-0'}`}
         >
           {currentView === "home" ? (
-            // Home (Feed) View
             <div className="w-full max-w-[1600px] mx-auto space-y-1 pb-20 animate-in fade-in slide-in-from-left-4 duration-500"> 
-              <PostForm onSubmit={handlePostSubmit} />
+              
+              <PostForm 
+                onSubmit={handlePostSubmit} 
+                isOpen={isPostFormOpen}
+                onOpenChange={setIsPostFormOpen}
+              />
 
-              <CarouselList 
-                title="今週注目の &quot;やってみた&quot;" 
-                subTitle="※AIが自動でピックアップしています"
-                // 変更点: アイコンを絵文字からSVGへ変更
-                icon={<Medal className="h-8 w-8 text-yellow-500" />}
-              >
-                {featuredPosts.map((post) => (
-                  <FeaturedPostCard key={post.id} post={post} onClick={() => setSelectedPost(post)} />
-                ))}
-              </CarouselList>
+              <div ref={featuredRef}>
+                <CarouselList 
+                  title="今週注目の &quot;やってみた&quot;" 
+                  subTitle="※AIが自動でピックアップしています"
+                  icon={<Medal className="h-8 w-8 text-yellow-500" />}
+                >
+                  {featuredPosts.map((post) => (
+                    <FeaturedPostCard key={post.id} post={post} onClick={() => setSelectedPost(post)} />
+                  ))}
+                </CarouselList>
+              </div>
 
               <CarouselList 
                 title="校内掲示板" 
-                // 変更点: アイコンを絵文字からSVGへ変更
                 icon={<ClipboardList className="h-8 w-8 text-primary/80" />}
               >
                 {notices.map((notice) => (
@@ -292,11 +287,9 @@ export default function StudentPage() {
                 ))}
               </CarouselList>
 
-              {/* ★変更: 全投稿エリアへのスクロール用Refを追加 */}
               <section className="w-full py-4" ref={allPostsRef}>
                 <div className="flex items-end justify-between mb-4 px-1">
                   <div className="flex items-center gap-3">
-                    {/* 変更点: text-3xlラッパーを削除し、直接SVGをレンダリング */}
                     <Grip className="h-8 w-8 text-primary/80 flex-shrink-0" />
                     <div>
                       <h2 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -322,9 +315,7 @@ export default function StudentPage() {
               </section>
             </div>
           ) : (
-            // Thanks Letter View
-            <div className="w-full h-full">
-              {/* onComplete を渡す */}
+            <div className="w-full h-full pb-20 md:pb-0">
               <ThanksLetterView 
                 onBack={() => handleNavigate("home")} 
                 onComplete={handleThanksComplete} 
@@ -333,8 +324,53 @@ export default function StudentPage() {
           )}
         </main>
 
+        {/* 
+          モバイル用下部ナビゲーションバー 
+          - テキスト削除
+          - アイコンサイズ拡大
+          - 変更点: 両脇のアイコン色を text-slate-400 から text-primary (紫) に変更
+        */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 z-50 flex items-center justify-around px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+          {/* 左: 注目へのジャンプ */}
+          <button 
+            onClick={handleMobileScrollToFeatured}
+            // 変更: text-slate-400 -> text-primary
+            className="flex items-center justify-center w-16 h-full text-primary hover:text-primary/80 transition-colors"
+            title="注目"
+          >
+            <Medal className="w-8 h-8" />
+          </button>
+
+          {/* 中央: 投稿フォーム展開 */}
+          <button 
+            onClick={handleMobileOpenPost}
+            className="flex items-center justify-center w-16 h-16 rounded-full bg-primary text-white shadow-xl -mt-8 border-[6px] border-slate-50 active:scale-95 transition-transform"
+            title="投稿する"
+          >
+            <PenTool className="w-7 h-7" />
+          </button>
+
+          {/* 右: 感謝の手紙 */}
+          <button 
+            onClick={() => handleNavigate("thanks")}
+            // 変更: text-slate-400 -> text-primary (条件分岐を削除し、常に紫ベースに統一)
+            className={`flex items-center justify-center w-16 h-full transition-colors ${currentView === "thanks" ? "text-primary opacity-100" : "text-primary hover:text-primary/80"}`}
+            title="感謝の手紙"
+          >
+            <div className="relative">
+              <Mail className="w-8 h-8" />
+              {thanksCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm border-2 border-white">
+                  {thanksCount}
+                </span>
+              )}
+            </div>
+          </button>
+        </div>
+
+        {/* スクロールトップボタン */}
         {currentView === "home" && (
-          <div className={`fixed bottom-6 right-6 z-40 transition-all duration-300 ${showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"}`}>
+          <div className={`fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 transition-all duration-300 ${showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"}`}>
             <Button onClick={scrollToTop} className="rounded-full w-12 h-12 bg-primary text-white shadow-lg hover:bg-primary/90 hover:scale-110 transition-all" size="icon">
               <ArrowUp className="w-6 h-6" />
             </Button>
