@@ -153,25 +153,6 @@ export function SidebarContent({
               <h3 className="text-xl font-bold text-slate-900 tracking-wide mb-2">
                 {studentData.name}
               </h3>
-              
-              {userRole === "student" && (
-                <div className="flex justify-center items-center gap-2 mb-3">
-                  <div className="w-3 h-3 rounded-full bg-green-500 shadow-sm" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400 shadow-sm" />
-                  <div className="w-3 h-3 rounded-full bg-red-500 shadow-sm" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400 shadow-sm" />
-                  <TooltipProvider>
-                    <Tooltip delayDuration={300}>
-                      <TooltipTrigger asChild>
-                        <div className="ml-1 w-4 h-4 rounded-full border border-slate-300 flex items-center justify-center text-[10px] text-slate-400 cursor-help hover:bg-slate-100 transition-colors">?</div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="max-w-[200px] text-xs bg-slate-800 text-white border-slate-700">
-                        <p>投稿の「量（回数）」、「質（AI評価）」、「感謝の手紙（他者評価）」を合計して一定期間毎に算出してます</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              )}
 
               <div className="text-sm font-medium text-slate-500 leading-relaxed">
                 <p>{studentData.class}</p>

@@ -13,7 +13,8 @@ import { ThanksLetterView } from "@/components/student-dummy/ThanksLetterView";
 // UIコンポーネントは共通のままでOK
 import { Button } from "@/components/ui/button";
 
-import { Grip, ArrowUp } from "lucide-react"; 
+// 変更点: Medal, ClipboardList を追加インポート
+import { Grip, ArrowUp, Medal, ClipboardList } from "lucide-react"; 
 import { useState, useEffect, useRef } from "react";
 import QRCode from "qrcode";
 
@@ -273,14 +274,19 @@ export default function StudentPage() {
               <CarouselList 
                 title="今週注目の &quot;やってみた&quot;" 
                 subTitle="※AIが自動でピックアップしています"
-                icon="👏"
+                // 変更点: アイコンを絵文字からSVGへ変更
+                icon={<Medal className="h-8 w-8 text-yellow-500" />}
               >
                 {featuredPosts.map((post) => (
                   <FeaturedPostCard key={post.id} post={post} onClick={() => setSelectedPost(post)} />
                 ))}
               </CarouselList>
 
-              <CarouselList title="校内掲示板" icon="📋">
+              <CarouselList 
+                title="校内掲示板" 
+                // 変更点: アイコンを絵文字からSVGへ変更
+                icon={<ClipboardList className="h-8 w-8 text-primary/80" />}
+              >
                 {notices.map((notice) => (
                   <NoticeCard key={notice.id} notice={notice} qrCodeUrl={qrCodes[notice.id]} onClick={() => setShowNoticeInfo(true)} />
                 ))}
@@ -290,7 +296,8 @@ export default function StudentPage() {
               <section className="w-full py-4" ref={allPostsRef}>
                 <div className="flex items-end justify-between mb-4 px-1">
                   <div className="flex items-center gap-3">
-                    <span className="text-3xl"><Grip className="h-8 w-8 text-primary/80" /></span> 
+                    {/* 変更点: text-3xlラッパーを削除し、直接SVGをレンダリング */}
+                    <Grip className="h-8 w-8 text-primary/80 flex-shrink-0" />
                     <div>
                       <h2 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">
                         すべての &quot;やってみた&quot;
