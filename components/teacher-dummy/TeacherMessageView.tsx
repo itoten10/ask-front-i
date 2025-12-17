@@ -7,7 +7,8 @@ import { PostDetailModal } from "@/components/student-dummy/PostDetailModal";
 import { FeatureInfoModal } from "@/components/student-dummy/FeatureInfoModal";
 import { FeaturedPostCard, NoticeCard, StandardPostCard } from "@/components/student-dummy/StudentPostCards";
 import { useState, useEffect } from "react";
-import { Grip } from "lucide-react";
+// 変更点: アイコンを追加インポート
+import { Grip, Medal, ClipboardList } from "lucide-react";
 import QRCode from "qrcode";
 
 // ==========================================
@@ -171,7 +172,7 @@ export function TeacherMessageView() {
         <CarouselList
           title='今週注目の "やってみた"'
           subTitle="※AIが自動でピックアップしています"
-          icon="👏"
+          icon={<Medal className="h-8 w-8 text-yellow-500" />}
         >
           {featuredPosts.map((post) => (
             <FeaturedPostCard key={post.id} post={post} onClick={() => handlePostClick(post)} />
@@ -181,7 +182,11 @@ export function TeacherMessageView() {
 
       {/* 校内掲示板 */}
       <section>
-        <CarouselList title="校内掲示板" icon="📋">
+        <CarouselList 
+          title="校内掲示板" 
+          // 変更点: 絵文字からプライマリーカラー（紫）のClipboardListアイコンへ変更
+          icon={<ClipboardList className="h-8 w-8 text-primary/80" />}
+        >
           {notices.map((notice) => (
             <NoticeCard 
               key={notice.id} 
@@ -196,6 +201,7 @@ export function TeacherMessageView() {
       {/* 全投稿一覧 (Grid形式) */}
       <section>
         <div className="mb-4 flex items-center gap-3 px-1">
+          {/* 既存: ここは変更なし（比較用: h-8 w-8 text-primary/80） */}
           <Grip className="h-8 w-8 text-primary/80" />
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-2">全投稿</h2>

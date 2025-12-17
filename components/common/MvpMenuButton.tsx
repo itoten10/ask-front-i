@@ -6,7 +6,60 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Wrench, X, GraduationCap, Users, Lock, ChevronRight, User, LayoutDashboard, BarChart3 } from "lucide-react";
+import { Wrench, X, GraduationCap, School, Lock, ChevronRight, User, LayoutDashboard, BarChart3, LucideIcon } from "lucide-react";
+
+// --- 内部コンポーネント定義 ---
+
+// セクションの区切りヘッダー（修正：線が文字の下を通らないように左右に分割、余白を短縮）
+const SectionHeader = ({ title }: { title: string }) => (
+  <div className="flex items-center gap-2 my-2 w-full px-1">
+    {/* 左側の線 */}
+    <div className="h-px bg-primary/20 flex-1" />
+    
+    {/* 中央のラベル */}
+    <span className="flex-shrink-0 bg-primary/5 px-3 py-0.5 rounded text-[10px] font-bold text-primary tracking-wide border border-primary/10">
+      {title}
+    </span>
+    
+    {/* 右側の線 */}
+    <div className="h-px bg-primary/20 flex-1" />
+  </div>
+);
+
+// メニューアイテムボタン
+interface MenuButtonProps {
+  icon: LucideIcon;
+  label: string;
+  path: string;
+  onClick: (path: string) => void;
+}
+
+const MenuButton = ({ icon: Icon, label, path, onClick }: MenuButtonProps) => (
+  <button
+    onClick={() => onClick(path)}
+    className="w-full flex items-center p-3 bg-white hover:bg-primary/5 border border-slate-200 hover:border-primary/30 rounded-xl group transition-all duration-200 mb-2 shadow-sm hover:shadow-md"
+  >
+    {/* アイコン部分 */}
+    <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 group-hover:text-primary group-hover:border-primary/30 group-hover:bg-white transition-colors flex-shrink-0 mr-3">
+      <Icon className="w-5 h-5" />
+    </div>
+    
+    {/* テキスト部分 */}
+    <div className="flex-1 text-left">
+      <div className="font-bold text-slate-700 group-hover:text-primary transition-colors text-sm">
+        {label}
+      </div>
+      <div className="text-[10px] text-slate-400 group-hover:text-primary/60 transition-colors font-mono">
+        {path}
+      </div>
+    </div>
+    
+    {/* 矢印 */}
+    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary/50 transition-colors" />
+  </button>
+);
+
+// --- Main Component ---
 
 export function MvpMenuButton() {
   const [isOpen, setIsOpen] = useState(false);
@@ -28,144 +81,89 @@ export function MvpMenuButton() {
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-[2px] animate-in fade-in duration-200"
       onClick={() => setIsOpen(false)}
     >
-      {/* 
-        修正: border-indigo-500 -> border-primary (テーマ色に統一)
-      */}
       <div 
-        className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border-2 border-primary/20 transform animate-in zoom-in-95 slide-in-from-bottom-4 duration-200 relative overflow-hidden"
+        className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border-2 border-primary/20 transform animate-in zoom-in-95 slide-in-from-bottom-4 duration-200 relative overflow-hidden max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 装飾用の背景: indigo -> primary (薄い紫) */}
+        {/* 装飾用の背景 */}
         <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
         
-        <div className="flex justify-between items-start mb-6 relative">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              {/* 修正: indigo -> primary */}
-              <span className="bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                MVP DEV TOOLS
-              </span>
-            </div>
-            <h3 className="text-lg font-bold text-slate-800">画面切り替えショートカット</h3>
-            <p className="text-xs text-slate-500 mt-1">
-              MVP専用機能です。ロールごとの画面へ<br/>
-              認証をスキップして直接移動します。
-            </p>
+        {/* 閉じるボタン */}
+        <button 
+          onClick={() => setIsOpen(false)}
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-full transition-colors z-20"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        {/* ヘッダー */}
+        <div className="flex flex-col items-center justify-center mb-2 relative z-10 text-center">
+          <div className="mb-2">
+            <span className="bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm">
+              MVP DEV TOOLS
+            </span>
           </div>
-          <button 
-            onClick={() => setIsOpen(false)}
-            className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-full transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <h3 className="text-lg font-bold text-slate-800">画面切り替えショートカット</h3>
+          <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+            MVP専用機能です。ロールごとの画面へ<br/>
+            一部認証をスキップして直接移動可能です。
+          </p>
         </div>
 
-        <div className="space-y-3 relative">
-          {/* デモページ（認証なし） */}
-          <button
-            onClick={() => handleNavigate("/student")}
-            className="w-full flex items-center p-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-lg group transition-all duration-200"
-          >
-            <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 group-hover:text-slate-600 group-hover:border-slate-300 shadow-sm mr-4 transition-colors">
-              <GraduationCap className="w-5 h-5" />
-            </div>
-            <div className="flex-1 text-left">
-              <div className="font-bold text-slate-800 group-hover:text-slate-600 transition-colors">生徒ページ（ログイン不要）</div>
-              <div className="text-[10px] text-slate-500">/student</div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
-          </button>
+        {/* コンテンツエリア */}
+        <div className="mt-2">
+          
+          {/* セクション1: コア機能体験 */}
+          <SectionHeader title="コア機能体験" />
+          <MenuButton 
+            icon={GraduationCap} 
+            label="生徒ページ" 
+            path="/student" 
+            onClick={handleNavigate} 
+          />
+          <MenuButton 
+            icon={School} 
+            label="教師ページ" 
+            path="/teacher" 
+            onClick={handleNavigate} 
+          />
+          <MenuButton 
+            icon={Lock} 
+            label="Google/2要素認証" 
+            path="/login" 
+            onClick={handleNavigate} 
+          />
 
-          <button
-            onClick={() => handleNavigate("/teacher")}
-            className="w-full flex items-center p-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-lg group transition-all duration-200"
-          >
-            <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 group-hover:text-slate-600 group-hover:border-slate-300 shadow-sm mr-4 transition-colors">
-              <Users className="w-5 h-5" />
-            </div>
-            <div className="flex-1 text-left">
-              <div className="font-bold text-slate-800 group-hover:text-slate-600 transition-colors">教師ページ（ログイン不要）</div>
-              <div className="text-[10px] text-slate-500">/teacher</div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
-          </button>
+          {/* セクション2: 認証後挙動確認 */}
+          <SectionHeader title="認証後" />
+          <MenuButton 
+            icon={GraduationCap} 
+            label="生徒ページ（要認証）" 
+            path="/student-dashboard" 
+            onClick={handleNavigate} 
+          />
+          <MenuButton 
+            icon={School} 
+            label="教師ページ（要認証）" 
+            path="/teacher-dashboard" 
+            onClick={handleNavigate} 
+          />
 
-          <button
-            onClick={() => handleNavigate("/login")}
-            className="w-full flex items-center p-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-lg group transition-all duration-200"
-          >
-            <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 group-hover:text-slate-600 group-hover:border-slate-300 shadow-sm mr-4 transition-colors">
-              <Lock className="w-5 h-5" />
-            </div>
-            <div className="flex-1 text-left">
-              <div className="font-bold text-slate-800 group-hover:text-slate-600 transition-colors">Google/2要素認証</div>
-              <div className="text-[10px] text-slate-500">/login</div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
-          </button>
+          {/* セクション3: 内部データ確認 */}
+          <SectionHeader title="内部データ確認" />
+          <MenuButton 
+            icon={BarChart3} 
+            label="AI能力判定" 
+            path="/test/ability-analysis" 
+            onClick={handleNavigate} 
+          />
+          <MenuButton 
+            icon={User} 
+            label="マイページ（要認証）" 
+            path="/me?stay=true" 
+            onClick={handleNavigate} 
+          />
 
-          <div className="border-t border-slate-200 my-2" />
-
-          {/* 能力分析（ログイン不要） */}
-          <button
-            onClick={() => handleNavigate("/test/ability-analysis")}
-            className="w-full flex items-center p-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-lg group transition-all duration-200"
-          >
-            <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 group-hover:text-slate-600 group-hover:border-slate-300 shadow-sm mr-4 transition-colors">
-              <BarChart3 className="w-5 h-5" />
-            </div>
-            <div className="flex-1 text-left">
-              <div className="font-bold text-slate-800 group-hover:text-slate-600 transition-colors">能力分析（ログイン不要）</div>
-              <div className="text-[10px] text-slate-500">/test/ability-analysis</div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
-          </button>
-
-          <div className="border-t border-slate-200 my-2" />
-
-          {/* 認証済みダッシュボード */}
-          <button
-            onClick={() => handleNavigate("/student-dashboard")}
-            className="w-full flex items-center p-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-lg group transition-all duration-200"
-          >
-            <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 group-hover:text-slate-600 group-hover:border-slate-300 shadow-sm mr-4 transition-colors">
-              <LayoutDashboard className="w-5 h-5" />
-            </div>
-            <div className="flex-1 text-left">
-              <div className="font-bold text-slate-800 group-hover:text-slate-600 transition-colors">生徒ページ（ログイン必要）</div>
-              <div className="text-[10px] text-slate-500">/student-dashboard</div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
-          </button>
-
-          <button
-            onClick={() => handleNavigate("/teacher-dashboard")}
-            className="w-full flex items-center p-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-lg group transition-all duration-200"
-          >
-            <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 group-hover:text-slate-600 group-hover:border-slate-300 shadow-sm mr-4 transition-colors">
-              <LayoutDashboard className="w-5 h-5" />
-            </div>
-            <div className="flex-1 text-left">
-              <div className="font-bold text-slate-800 group-hover:text-slate-600 transition-colors">教師ページ（ログイン必要）</div>
-              <div className="text-[10px] text-slate-500">/teacher-dashboard</div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
-          </button>
-
-          {/* マイページ */}
-          <button
-            onClick={() => handleNavigate("/me?stay=true")}
-            className="w-full flex items-center p-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-lg group transition-all duration-200"
-          >
-            <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 group-hover:text-slate-600 group-hover:border-slate-300 shadow-sm mr-4 transition-colors">
-              <User className="w-5 h-5" />
-            </div>
-            <div className="flex-1 text-left">
-              <div className="font-bold text-slate-800 group-hover:text-slate-600 transition-colors">マイページ（ログイン必要）</div>
-              <div className="text-[10px] text-slate-500">/me</div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
-          </button>
         </div>
       </div>
     </div>,
