@@ -326,16 +326,15 @@ export default function StudentPage() {
 
         {/* 
           モバイル用下部ナビゲーションバー 
-          - テキスト削除
-          - アイコンサイズ拡大
-          - 変更点: 両脇のアイコン色を text-slate-400 から text-primary (紫) に変更
+          - 背景: bg-primary (紫)
+          - 両脇アイコン: text-white (白)
+          - 中央投稿ボタン: bg-white (白) + text-primary (紫) + border-primary (紫の枠線で背景に馴染ませる)
         */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 z-50 flex items-center justify-around px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-primary border-t border-primary/20 z-50 flex items-center justify-around px-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
           {/* 左: 注目へのジャンプ */}
           <button 
             onClick={handleMobileScrollToFeatured}
-            // 変更: text-slate-400 -> text-primary
-            className="flex items-center justify-center w-16 h-full text-primary hover:text-primary/80 transition-colors"
+            className="flex items-center justify-center w-16 h-full text-white hover:text-white/80 transition-colors"
             title="注目"
           >
             <Medal className="w-8 h-8" />
@@ -344,7 +343,7 @@ export default function StudentPage() {
           {/* 中央: 投稿フォーム展開 */}
           <button 
             onClick={handleMobileOpenPost}
-            className="flex items-center justify-center w-16 h-16 rounded-full bg-primary text-white shadow-xl -mt-8 border-[6px] border-slate-50 active:scale-95 transition-transform"
+            className="flex items-center justify-center w-16 h-16 rounded-full bg-white text-primary shadow-xl -mt-8 border-[6px] border-primary active:scale-95 transition-transform"
             title="投稿する"
           >
             <PenTool className="w-7 h-7" />
@@ -353,14 +352,13 @@ export default function StudentPage() {
           {/* 右: 感謝の手紙 */}
           <button 
             onClick={() => handleNavigate("thanks")}
-            // 変更: text-slate-400 -> text-primary (条件分岐を削除し、常に紫ベースに統一)
-            className={`flex items-center justify-center w-16 h-full transition-colors ${currentView === "thanks" ? "text-primary opacity-100" : "text-primary hover:text-primary/80"}`}
+            className={`flex items-center justify-center w-16 h-full transition-colors ${currentView === "thanks" ? "text-white opacity-100" : "text-white hover:text-white/80"}`}
             title="感謝の手紙"
           >
             <div className="relative">
               <Mail className="w-8 h-8" />
               {thanksCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm border-2 border-white">
+                <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm border-2 border-primary">
                   {thanksCount}
                 </span>
               )}

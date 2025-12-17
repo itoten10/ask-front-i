@@ -36,7 +36,8 @@ interface StudentAnalysisData {
   avatar_url: string;
   grade_class: string;
   seminar: string;
-  summary: string;
+  summary: string; // 既存の短いサマリー (非認知能力ビュー用)
+  processSummary: string; // ★新規: 探究プロセスとしてのサマリー (進捗ビュー用)
   scores: Record<AbilityCode, number>;
 }
 
@@ -45,7 +46,8 @@ interface StudentDetailSheetProps {
   onClose: () => void;
   studentId: number | null;
   studentName: string | null;
-  onHistoryClick: () => void; // ★追加
+  onHistoryClick: () => void;
+  activeTab?: string; // ★追加: どのタブから開かれたかを判別する
 }
 
 const chartConfig = {
@@ -60,7 +62,8 @@ export function StudentDetailSheet({
   onClose, 
   studentId, 
   studentName, 
-  onHistoryClick 
+  onHistoryClick,
+  activeTab = "progress" // デフォルト
 }: StudentDetailSheetProps) {
   
   const mockAnalysisData: Record<string, StudentAnalysisData> = useMemo(() => ({
@@ -71,6 +74,11 @@ export function StudentDetailSheet({
       grade_class: "2年4組",
       seminar: "メディアラボ",
       summary: "高い「課題設定能力」を発揮し、独自の視点から問いを深めています。特に今月はインタビュー調査を通じて「対話力」が大きく向上しました。一方で、アイデアを形にする「実行力」のフェーズで少し停滞が見られるため、スモールステップでの試作を促すと良いでしょう。",
+      processSummary: `初期段階では「ストレスと運動」という広いテーマに関心を持っていましたが、文献調査を通じて「短時間の有酸素運動とメンタルヘルスの相関」へと問いを具体化させるプロセスが非常にスムーズでした。
+
+特に11月に行われた運動部の顧問へのインタビュー調査では、当初の仮説とは異なる現場の実情に触れ、一度立ち止まって問いを見直す柔軟性が見られました。これは探究学習において重要な「アンラーニング（学びほぐし）」のプロセスを体現しています。
+
+現在は実験計画の策定フェーズですが、協力者の確保にやや苦戦しており、実行段階で足踏みしている印象です。完璧なデータを求めすぎず、まずはスモールスタートで予備実験を行うようアドバイスすることで、停滞を打破できるでしょう。`,
       scores: {
         setting: 5, gathering: 4, involving: 3, communication: 5,
         humility: 4, execution: 2, completion: 3
@@ -83,6 +91,11 @@ export function StudentDetailSheet({
       grade_class: "2年4組",
       seminar: "メディアラボ",
       summary: "チーム全体を「巻込力」が非常に高く、停滞していた議論を前に進めるリーダーシップが見られます。自身の意見だけでなく、他者の意見を尊重する「謙虚さ」も評価されており、クラスの心理的安全性に貢献しています。",
+      processSummary: `「心理的安全性」をテーマにしたグループワークにおいて、当初はメンバー間の意見対立をまとめることに苦労していましたが、ファシリテーションの手法を自ら学び、実践することでチームの雰囲気を劇的に改善させました。
+
+特筆すべきは、自分自身が「失敗談」を率先して共有することで、他のメンバーが発言しやすい空気を作った点です。この行動は、単なる司会進行役を超えた、サーバントリーダーシップの発揮と言えます。
+
+現在はプロジェクトの中盤に差し掛かり、具体的な成果物のアウトプットが求められる段階です。議論を拡散させる力は十分にあるため、今後は収束させ、形にする「完遂力」を意識したタイムマネジメントへの支援が鍵となります。`,
       scores: {
         setting: 3, gathering: 3, involving: 5, communication: 4,
         humility: 5, execution: 4, completion: 4
@@ -95,6 +108,11 @@ export function StudentDetailSheet({
       grade_class: "2年4組",
       seminar: "メディアラボ",
       summary: "文献調査における「情報収集」能力が卓越しており、質の高い一次情報を確保できています。ただし、集めた情報を整理しきる前に次の調査へ移る傾向があり、「完遂力」に課題があります。アウトプットの期限を細かく設定する支援が有効です。",
+      processSummary: `地域情報のアーカイブ化というテーマに対し、図書館での文献調査だけでなく、実際に古地図を持ってフィールドワークを行うなど、極めて質の高い一次情報の収集を行っています。情報の「深さ」を追求する姿勢は研究者顔負けです。
+
+一方で、集めた情報量が膨大になりすぎてしまい、整理・分析のフェーズで情報の海に溺れかけている様子が見受けられます。「あれもこれも」と網羅性を求めすぎるあまり、本質的な問いの検証がおろそかになりがちです。
+
+プロセスとしては「発散」から「収束」への切り替えが必要です。「まずはこの地区に絞って公開する」といった具体的なマイルストーンを設定し、不完全でも一度形にして世に出す経験を積ませることが、次の成長につながるでしょう。`,
       scores: {
         setting: 4, gathering: 5, involving: 2, communication: 3,
         humility: 3, execution: 3, completion: 2
@@ -107,6 +125,11 @@ export function StudentDetailSheet({
       grade_class: "2年4組",
       seminar: "メディアラボ",
       summary: "「実行力」が高く、まずはやってみる姿勢が素晴らしいです。失敗を恐れずに挑戦できていますが、振り返りの時間が不足しており、同じミスを繰り返す傾向があります。「課題設定」の段階で仮説の精度を高めるようアドバイスが必要です。",
+      processSummary: `廃棄野菜の活用というテーマに対し、机上の空論で終わらせず、すぐに試作品作りや農家への訪問を行うバイタリティは圧倒的です。「まずはやってみる」というプロトタイピングのサイクルを高速で回しており、行動量はクラス随一です。
+
+しかし、行動先行型であるがゆえに、「なぜうまくいかなかったのか」という省察（リフレクション）のプロセスが浅くなりがちです。失敗から学びを得て次の仮説に活かすサイクルが弱いため、同じような試行錯誤を繰り返してしまう場面も見られます。
+
+今後は、行動の後に必ず「振り返りシート」を記入させるなど、意図的に立ち止まる時間を設けることが有効です。思考と言語化のプロセスを強化することで、持ち前の行動力がより成果に結びつくようになるでしょう。`,
       scores: {
         setting: 2, gathering: 3, involving: 4, communication: 4,
         humility: 4, execution: 5, completion: 3
@@ -125,6 +148,11 @@ export function StudentDetailSheet({
     { subject: '実行力',   score: data.scores.execution },
     { subject: '完遂力',   score: data.scores.completion },
   ] : [];
+
+  // ★分岐ロジック: 表示モードの判定
+  const isProgressMode = activeTab === "progress";
+  const summaryTitle = isProgressMode ? "探究活動プロセスのとしての活動サマリー" : "AIによる活動サマリー";
+  const summaryText = isProgressMode && data ? data.processSummary : (data ? data.summary : "");
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -168,56 +196,59 @@ export function StudentDetailSheet({
             <div className="flex-1 overflow-y-auto">
               
               <div className="px-6 pt-6 pb-2">
-                <h3 className="text-xs font-bold text-slate-400 mb-2 flex items-center gap-2">
-                  <span className="w-1 h-3 bg-primary rounded-full" />
-                  非認知能力スコア
-                </h3>
-                <div className="w-full flex justify-center">
-                  <ChartContainer
-                    config={chartConfig}
-                    className="aspect-square w-full max-w-[280px]"
-                  >
-                    <RadarChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
-                      <ChartTooltip
-                        cursor={false}
-                        content={<ChartTooltipContent />}
-                      />
-                      <PolarGrid 
-                        gridType="polygon" 
-                        className="stroke-slate-200" 
-                        strokeWidth={1}
-                      />
-                      <PolarAngleAxis 
-                        dataKey="subject" 
-                        tick={{ fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: '600' }} 
-                      />
-                      <PolarRadiusAxis domain={[0, 5]} tickCount={6} tick={false} axisLine={false} />
-                      <Radar
-                        dataKey="score"
-                        fill="var(--color-score)"
-                        fillOpacity={0.3}
-                        stroke="var(--color-score)"
-                        strokeWidth={2.5}
-                        dot={{ r: 3, fillOpacity: 1, strokeWidth: 0 }}
-                      />
-                    </RadarChart>
-                  </ChartContainer>
-                </div>
-              </div>
-
-              <div className="px-6 pb-10 space-y-6">
+                {/* ★条件分岐: 非認知能力タブの時のみレーダーチャートを表示 */}
+                {!isProgressMode && (
+                  <>
+                    <h3 className="text-xs font-bold text-slate-400 mb-2 flex items-center gap-2">
+                      <span className="w-1 h-3 bg-primary rounded-full" />
+                      非認知能力スコア
+                    </h3>
+                    <div className="w-full flex justify-center mb-6">
+                      <ChartContainer
+                        config={chartConfig}
+                        className="aspect-square w-full max-w-[280px]"
+                      >
+                        <RadarChart data={chartData} margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
+                          <ChartTooltip
+                            cursor={false}
+                            content={<ChartTooltipContent />}
+                          />
+                          <PolarGrid 
+                            gridType="polygon" 
+                            className="stroke-slate-200" 
+                            strokeWidth={1}
+                          />
+                          <PolarAngleAxis 
+                            dataKey="subject" 
+                            tick={{ fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: '600' }} 
+                          />
+                          <PolarRadiusAxis domain={[0, 5]} tickCount={6} tick={false} axisLine={false} />
+                          <Radar
+                            dataKey="score"
+                            fill="var(--color-score)"
+                            fillOpacity={0.3}
+                            stroke="var(--color-score)"
+                            strokeWidth={2.5}
+                            dot={{ r: 3, fillOpacity: 1, strokeWidth: 0 }}
+                          />
+                        </RadarChart>
+                      </ChartContainer>
+                    </div>
+                  </>
+                )}
                 
-                <section>
+                {/* サマリーセクション (タイトルとテキストはモードによって変化) */}
+                <section className="mb-6">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="bg-purple-50 p-1 rounded-md">
                       <Bot className="w-3.5 h-3.5 text-primary" />
                     </div>
-                    <h3 className="font-bold text-slate-800 text-sm">AIによる活動サマリー</h3>
+                    <h3 className="font-bold text-slate-800 text-sm">{summaryTitle}</h3>
                   </div>
                   <div className="bg-slate-50 p-5 border border-slate-100 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
-                    <p className="text-sm text-slate-700 leading-relaxed text-justify">
-                      {data.summary}
+                    <p className="text-sm text-slate-700 leading-relaxed text-justify whitespace-pre-wrap">
+                      {summaryText}
                     </p>
                     <div className="mt-4 pt-3 border-t border-slate-200/60 flex justify-end">
                       <span className="text-[10px] text-slate-400 font-medium">集計期間: 2025/04/01 - 現在</span>
@@ -225,10 +256,10 @@ export function StudentDetailSheet({
                   </div>
                 </section>
 
-                <section className="space-y-2 pt-2">
+                <section className="space-y-2 pt-2 pb-10">
                   <Button 
                     variant="outline" 
-                    onClick={onHistoryClick} // ★追加: クリックイベント
+                    onClick={onHistoryClick} 
                     className="w-full justify-between h-12 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all group rounded-none"
                   >
                     <div className="flex items-center gap-3">
