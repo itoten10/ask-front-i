@@ -3,11 +3,11 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowUp } from "lucide-react"; // ★ArrowUp追加
+import { ArrowLeft, ArrowUp } from "lucide-react"; 
 import { StandardPostCard, Post } from "@/components/student-dummy/StudentPostCards";
 import { FeatureInfoModal } from "@/components/student-dummy/FeatureInfoModal";
 import { PostDetailModal } from "@/components/student-dummy/PostDetailModal";
-import { useState, useMemo, useRef } from "react"; // ★useRef追加
+import { useState, useMemo, useRef } from "react"; 
 
 interface StudentHistoryViewProps {
   studentName: string;
@@ -18,7 +18,7 @@ export function StudentHistoryView({ studentName, onBack }: StudentHistoryViewPr
   const [showCommentInfo, setShowCommentInfo] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
-  // ★追加: スクロールトップボタンの状態管理
+  // スクロールトップボタンの状態管理
   const [showScrollTop, setShowScrollTop] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -186,7 +186,7 @@ export function StudentHistoryView({ studentName, onBack }: StudentHistoryViewPr
     }));
   };
 
-  // ★追加: スクロールイベントハンドラ
+  // スクロールイベントハンドラ
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (e.currentTarget.scrollTop > 300) {
       setShowScrollTop(true);
@@ -195,7 +195,7 @@ export function StudentHistoryView({ studentName, onBack }: StudentHistoryViewPr
     }
   };
 
-  // ★追加: トップへ戻る機能
+  // トップへ戻る機能
   const scrollToTop = () => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
@@ -241,8 +241,8 @@ export function StudentHistoryView({ studentName, onBack }: StudentHistoryViewPr
 
       {/* Grid List */}
       <div 
-        ref={scrollContainerRef} // ★Refを設定
-        onScroll={handleScroll}  // ★イベントを設定
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
         className="flex-1 overflow-y-auto pr-2 scroll-smooth"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20">
@@ -259,8 +259,12 @@ export function StudentHistoryView({ studentName, onBack }: StudentHistoryViewPr
         </div>
       </div>
 
-      {/* ★追加: トップへ戻るボタン */}
-      <div className={`fixed right-6 bottom-6 z-50 transition-all duration-300 ${showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"}`}>
+      {/* 
+        ★修正ポイント: bottom-24 lg:bottom-6
+        モバイル(デフォルト)では下から96px(24 * 4px)の位置に配置し、ナビゲーションバー(h-16 = 64px)を回避。
+        PC(lg以上)では下から24px(6 * 4px)の位置に戻す。
+      */}
+      <div className={`fixed right-6 bottom-24 lg:bottom-6 z-50 transition-all duration-300 ${showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"}`}>
         <Button 
           onClick={scrollToTop} 
           className="rounded-full w-12 h-12 bg-primary text-white shadow-lg hover:bg-primary/90 hover:scale-110 transition-all" 
